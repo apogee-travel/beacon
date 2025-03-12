@@ -1,0 +1,23 @@
+{
+    "name": "beacon-monorepo",
+    "version": "1.0.0",
+    "description": "Monorepo to hold beacon and related libraries",
+    "scripts": {
+        "clear:all": "bash runscripts/clear.sh",
+        "install:all": "bash runscripts/install.sh",
+        "reinstall:all": "npm run clear:all; npm run install:all",
+        "prettier:all": "bash runscripts/prettier.sh all",
+        "lint:all": "bash runscripts/lint.sh all"
+    },
+    "author": "Jim Cowart",
+    "license": "MIT",
+    "dependencies": {
+        "tsdx": "^0.14.1",
+        "typescript-eslint": "^8.25.0"
+    },
+    "workspaces": [
+        "packages/*",
+        "example-apps/beacon-react-web"
+    ],
+    "devDependencies": {}
+}

@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "beacon": ["packages/beacon/dist/index"],
+            "beacon-localstorage": ["packages/beacon-localstorage/dist/index"]
+        }
+    }
+}

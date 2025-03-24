@@ -26,9 +26,6 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.26.1
         version: 8.26.1(eslint@9.22.0)(typescript@5.8.2)
-      beacon:
-        specifier: ^0.4.9
-        version: 0.4.9
       eslint-config-prettier:
         specifier: ^9.0.0
         version: 9.1.0(eslint@9.22.0)
@@ -2492,12 +2489,6 @@ packages:
 
   /balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
-    dev: true
-
-  /beacon@0.4.9:
-    resolution: {integrity: sha512-ovg/5iqOrV6WlTvddnMKvhGEAjnZJPgsnvSsnN6PlvMWgX50GbhuHEdUoSyRM18IDX84h49Mn5ilSVzxUbYZhw==}
-    dependencies:
-      redis: 0.8.6
     dev: true
 
   /better-path-resolve@1.0.0:
@@ -5277,10 +5268,6 @@ packages:
     engines: {node: '>=8.10.0'}
     dependencies:
       picomatch: 2.3.1
-    dev: true
-
-  /redis@0.8.6:
-    resolution: {integrity: sha512-YjA/U7ASlxLsXhbkl+5/qY5lFunGaY3dxU8ZFyBONg3mcu/D18NeB8DsM7/LPS2CRTMoMMfWuyPKqmOx0e2y8g==}
     dev: true
 
   /reflect.getprototypeof@1.0.10:

@@ -1,5 +1,5 @@
 {
-    "name": "@apogeelabs/beacon-browserstorage",
+    "name": "@apogeelabs/beacon-actorstore",
     "author": "Apogee Travel",
     "contributors": [
         {
@@ -8,7 +8,7 @@
     ],
     "version": "0.1.0",
     "license": "ISC",
-    "description": "Browser storage extension for beacon",
+    "description": "Actor model extension for beacon",
     "engines": {
         "node": ">=18"
     },
@@ -37,16 +37,19 @@
         "beacon",
         "mobx",
         "store",
-        "localstorage",
-        "sessionstorage",
-        "storage"
+        "state management",
+        "fsm",
+        "actor",
+        "state machine",
+        "xstate"
     ],
     "publishConfig": {
         "access": "public"
     },
     "dependencies": {
         "@apogeelabs/beacon": "workspace:*",
-        "mobx": "^6.13.7"
+        "mobx": "^6.13.7",
+        "xstate": "^5.19.2"
     },
     "devDependencies": {
         "@types/jest": "^29.5.5",

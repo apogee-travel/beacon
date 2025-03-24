@@ -1,23 +1,39 @@
 {
     "name": "beacon-monorepo",
-    "version": "1.0.0",
-    "description": "Monorepo to hold beacon and related libraries",
-    "scripts": {
-        "clear:all": "bash runscripts/clear.sh",
-        "install:all": "bash runscripts/install.sh",
-        "reinstall:all": "npm run clear:all; npm run install:all",
-        "prettier:all": "bash runscripts/prettier.sh all",
-        "lint:all": "bash runscripts/lint.sh all"
-    },
-    "author": "Jim Cowart",
-    "license": "MIT",
-    "dependencies": {
-        "tsdx": "^0.14.1",
-        "typescript-eslint": "^8.25.0"
-    },
+    "version": "0.0.0",
+    "private": true,
     "workspaces": [
-        "packages/*",
-        "example-apps/beacon-react-web"
+        "packages/*"
     ],
-    "devDependencies": {}
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+        "test": "turbo run test",
+        "changeset": "changeset",
+        "version-packages": "changeset version",
+        "release": "turbo run build && changeset publish"
+    },
+    "devDependencies": {
+        "@changesets/cli": "^2.26.2",
+        "@eslint/js": "^9.22.0",
+        "@types/jest": "^29.5.5",
+        "@types/node": "^20.8.0",
+        "@typescript-eslint/eslint-plugin": "^8.26.1",
+        "@typescript-eslint/parser": "^8.26.1",
+        "beacon": "^0.4.9",
+        "eslint-config-prettier": "^9.0.0",
+        "jest": "^29.7.0",
+        "prettier": "^3.0.3",
+        "ts-jest": "^29.1.1",
+        "ts-node": "^10.9.1",
+        "tsup": "^7.2.0",
+        "turbo": "^1.10.14",
+        "typescript": "^5.2.2"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "packageManager": "pnpm@8.7.5"
 }

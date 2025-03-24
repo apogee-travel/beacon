@@ -1,0 +1,28 @@
+{
+    "name": "beacon-actor-store",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "start": "pnpm run build && node dist/index.js",
+        "build": "tsup ./src/index.ts",
+        "test": "jest",
+        "lint": "eslint --config ../../.eslintrc.js 'src/**/*.{ts,tsx}'"
+    },
+    "keywords": [],
+    "author": "Jim Cowart",
+    "license": "ISC",
+    "dependencies": {
+        "@apogeelabs/beacon": "^0.1.0",
+        "@apogeelabs/beacon-actorstore": "^0.1.0",
+        "mobx": "^6.13.7",
+        "xstate": "^5.19.2"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.21.0",
+        "eslint": "^9.21.0",
+        "globals": "^15.15.0",
+        "typescript": "~5.7.2",
+        "typescript-eslint": "^8.24.1"
+    }
+}

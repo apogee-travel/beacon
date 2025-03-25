@@ -16,6 +16,6 @@
             "@apogeelabs/*": ["packages/*/src"]
         }
     },
-    "include": ["src"],
+    "include": ["src/**/*", "packages/beacon-reactquery/src/**/*"],
     "exclude": ["node_modules", "dist", ".eslintrc.js", "jest.config.js"]
 }

@@ -13,8 +13,8 @@
     "author": "Jim Cowart",
     "license": "ISC",
     "dependencies": {
-        "@apogeelabs/beacon": "^0.1.0",
-        "@apogeelabs/beacon-actorstore": "^0.1.0",
+        "@apogeelabs/beacon": "^0.2.0",
+        "@apogeelabs/beacon-actorstore": "^0.2.0",
         "mobx": "^6.13.7",
         "xstate": "^5.19.2"
     },

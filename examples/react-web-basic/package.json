@@ -10,8 +10,8 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@apogeelabs/beacon": "^0.1.0",
-        "@apogeelabs/beacon-browserstorage": "^0.1.0",
+        "@apogeelabs/beacon": "^0.2.0",
+        "@apogeelabs/beacon-browserstorage": "^0.2.0",
         "mobx": "^6.13.7",
         "mobx-react-lite": "^4.1.0",
         "react": "^19.0.0",

@@ -1,4 +1,4 @@
-<img src="example-apps/beacon-react-web/public/beacon-old-school.webp" alt="Beacon" width="78" style="border-radius: .75rem;"/>
+<img src="examples/react-web-basic/public/beacon-old-school.webp" alt="Beacon" width="78" style="border-radius: .75rem;"/>
 
 # Beacon
 
@@ -42,14 +42,14 @@ class ObservableTodoStore {
     }
 
     get completedTodosCount() {
-        return this.todos.filter((todo) => todo.completed === true).length;
+        return this.todos.filter(todo => todo.completed === true).length;
     }
 
     get report() {
         if (this.todos.length === 0) {
             return "<none>";
         }
-        const nextTodo = this.todos.find((todo) => todo.completed === false);
+        const nextTodo = this.todos.find(todo => todo.completed === false);
         return (
             `Next todo: "${nextTodo ? nextTodo.task : "<none>"}". ` +
             `Progress: ${this.completedTodosCount}/${this.todos.length}`
@@ -78,13 +78,13 @@ export const productListStore = createStore<TodoListState, TodoListComputedState
     },
     derived: {
         completedTodosCount() {
-            return this.todos.filter((todo) => todo.completed === true).length;
+            return this.todos.filter(todo => todo.completed === true).length;
         },
         report() {
             if (this.todos.length === 0) {
                 return "<none>";
             }
-            const nextTodo = this.todos.find((todo) => todo.completed === false);
+            const nextTodo = this.todos.find(todo => todo.completed === false);
             return (
                 `Next todo: "${nextTodo ? nextTodo.task : "<none>"}". ` +
                 `Progress: ${this.completedTodosCount}/${this.todos.length}`

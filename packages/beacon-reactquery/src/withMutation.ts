@@ -1,5 +1,5 @@
-import { QueryClient } from "@tanstack/react-query";
-import { Store, StoreConfig, EmptyDerived, EmptyActions } from "@apogeelabs/beacon";
+import type { QueryClient } from "@tanstack/react-query";
+import type { Store, StoreConfig, EmptyDerived, EmptyActions } from "@apogeelabs/beacon";
 
 /**
  * Mutation function signature for TanStack Query mutations

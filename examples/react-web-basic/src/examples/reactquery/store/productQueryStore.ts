@@ -48,14 +48,8 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
                 queries: {
                     products: {
                         queryKey: ["products"],
-                        queryFn: () => {
-                            console.log("YO!!!");
-                            const res = productApi.fetchProducts();
-                            res.then(console.log);
-                            return res;
-                        },
+                        queryFn: () => productApi.fetchProducts(),
                         stateMapping: (_state, products) => {
-                            console.log("MAYBE");
                             return { products };
                         },
                     },

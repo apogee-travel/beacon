@@ -1,5 +1,5 @@
-import { QueryClient, Query, QueryState } from "@tanstack/react-query";
-import { Store, StoreConfig, EmptyDerived, EmptyActions } from "@apogeelabs/beacon";
+import type { QueryClient, Query, QueryState } from "@tanstack/react-query";
+import type { Store, StoreConfig, EmptyDerived, EmptyActions } from "@apogeelabs/beacon";
 
 /**
  * Type for a query's status information
@@ -112,7 +112,7 @@ export function withQuery<
                     );
                 };
 
-                // Subscribe to TanStack Query's cache events for this query
+                // Subscribe to react-query's cache events for this query
                 const unsubscribe = queryClient.getQueryCache().subscribe(event => {
                     if (!event.query) return;
 

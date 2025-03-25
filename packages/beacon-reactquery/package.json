@@ -6,7 +6,7 @@
             "name": "Jim Cowart"
         }
     ],
-    "version": "0.1.1",
+    "version": "0.1.2",
     "license": "ISC",
     "description": "beacon middleware for react-query integration with beacon stores",
     "engines": {
@@ -46,8 +46,8 @@
     },
     "dependencies": {
         "@apogeelabs/beacon": "workspace:*",
-        "mobx": "^6.13.7",
-        "react-query": "^3.39.3"
+        "@tanstack/react-query": "^5.69.0",
+        "mobx": "^6.13.7"
     },
     "devDependencies": {
         "@types/jest": "^29.5.5",

@@ -1,4 +1,4 @@
-import { createStore, compose } from "@apogeelabs/beacon";
+import { compose, createStore } from "@apogeelabs/beacon";
 import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
 
 export interface Product {

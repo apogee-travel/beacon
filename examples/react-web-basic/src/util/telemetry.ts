@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { productListStore } from "../store/productListStore";
+import { productListStore } from "../examples/basic/store/productListStore";
 import { reaction } from "mobx";
 
 // Mock telemetry API

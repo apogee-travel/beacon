@@ -36,6 +36,8 @@
     },
     "packageManager": "pnpm@8.7.5",
     "dependencies": {
+        "@apogeelabs/beacon-reactquery": "workspace:^0.1.1",
+        "@tanstack/react-query": "^5.69.0",
         "react-query": "^3.39.3"
     }
 }

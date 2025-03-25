@@ -1,7 +1,7 @@
+import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { Product, productListStore } from "../store/productListStore";
 import ProductListItem from "./ProductListItem";
-import { observer } from "mobx-react-lite";
 
 const ProductList = observer(() => {
     const { sortedProducts, sortBy, sortDirection, selectedProduct, selectedProductId } =
@@ -60,7 +60,7 @@ const ProductList = observer(() => {
 
             {/* Product List */}
             <ul style={{ listStyle: "none", padding: 0 }}>
-                {sortedProducts.map((product) => (
+                {sortedProducts.map(product => (
                     <ProductListItem
                         key={product.id}
                         product={product}

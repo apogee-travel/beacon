@@ -1,5 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { StoreConfig } from "./types";
+import {
+    BeaconActions,
+    BeaconDerived,
+    BeaconState,
+    EmptyActions,
+    EmptyDerived,
+    StoreConfig,
+} from "./types";
 
 /**
  * Helper function to compose multiple middleware functions together
@@ -8,9 +14,9 @@ import { StoreConfig } from "./types";
  * @returns A function that applies all middleware in sequence
  */
 export function compose<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any>,
-    TActions extends Record<string, (...args: any[]) => any>,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 >(
     ...middlewares: ((
         config: StoreConfig<TState, TDerived, TActions>

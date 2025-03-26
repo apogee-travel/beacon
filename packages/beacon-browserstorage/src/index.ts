@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { BeaconActions, BeaconDerived, BeaconState } from "@apogeelabs/beacon";
 import { reaction } from "mobx";
 
 export interface BrowserStorageOptions {
@@ -14,9 +15,9 @@ export interface BrowserStorageOptions {
 }
 
 export function browserStorageMiddleware<
-    TState extends Record<string, any>,
-    _TDerived extends Record<string, (state: TState) => any>,
-    _TActions extends Record<string, (...args: any[]) => any>,
+    TState extends BeaconState,
+    _TDerived extends BeaconDerived<TState>,
+    _TActions extends BeaconActions<TState>,
 >(options: BrowserStorageOptions) {
     const storage = options.storageType === "session" ? sessionStorage : localStorage;
 

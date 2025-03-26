@@ -1,5 +1,6 @@
 import { ActorAction } from "@apogeelabs/beacon-actorstore";
 import { todoMachine } from "./fsm";
+import { BeaconActions } from "@apogeelabs/beacon";
 
 // Define the Todo type
 export interface Todo {
@@ -16,7 +17,7 @@ export interface TodoListState {
     error: string | null;
 }
 
-export interface TodoStoreActions extends Record<string, any> {
+export interface TodoStoreActions extends BeaconActions<TodoListState> {
     localSearch: (state: TodoListState, query: string) => Todo[];
 }
 

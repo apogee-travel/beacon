@@ -24,6 +24,14 @@ module.exports = {
                 argsIgnorePattern: "^_",
             },
         ],
+        "@typescript-eslint/no-unused-expressions": [
+            "error",
+            {
+                allowShortCircuit: true,
+                allowTernary: true,
+                allowTaggedTemplates: true,
+            },
+        ],
     },
     ignorePatterns: ["dist", "node_modules", ".eslintrc.js"],
 };

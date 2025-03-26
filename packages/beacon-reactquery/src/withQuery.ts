@@ -1,23 +1,31 @@
-import type { QueryClient, Query, QueryState } from "@tanstack/react-query";
-import type { Store, StoreConfig, EmptyDerived, EmptyActions } from "@apogeelabs/beacon";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { BeaconActions, BeaconDerived, BeaconState, Store, StoreConfig } from "@apogeelabs/beacon";
+import { Query, QueryClient, QueryState } from "@tanstack/react-query";
+import { runInAction } from "mobx";
 
 /**
- * Type for a query's status information
+ * Type for a query's refetch function
  */
-export type QueryStatus = {
-    loading: boolean;
-    error: Error | null;
-    refetch: () => Promise<void>;
+export type QueryRefetch = () => Promise<void>;
+
+/**
+ * Status mapping configuration - can be property names or setter functions
+ */
+export type StatusMapping = {
+    loading?: string | ((state: any, isLoading: boolean) => void);
+    error?: string | ((state: any, error: Error | null) => void);
 };
 
 /**
- * Generic type for a store with queries support
+ * Helper type that describes what a store will look like after
+ * the withQuery middleware has been applied and the store has been created.
+ * This is not the return type of the middleware itself.
  */
 export type StoreWithQueries<
-    TQueries extends Record<string, QueryStatus>,
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any> = EmptyDerived<TState>,
-    TActions extends Record<string, (...args: any[]) => any> = EmptyActions,
+    TQueries extends Record<string, QueryRefetch>,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
 > = Store<TState, TDerived, TActions> & {
     queries: TQueries;
 };
@@ -25,18 +33,17 @@ export type StoreWithQueries<
 /**
  * Middleware that integrates TanStack Query's data fetching capabilities with Beacon stores.
  *
- * This middleware establishes a connection between Query's cache and a Beacon store,
- * automatically keeping the store in sync with query results. It also adds a `queries`
- * property to the store with loading, error states, and refetch functions.
+ * This middleware connects React Query to Beacon stores, mapping query results and status
+ * directly to store state properties. It only uses a minimal queries property for refetch functions.
  *
  * @param options Configuration object containing the QueryClient and query definitions
  * @returns A middleware function that enhances a Beacon store configuration
  */
 export function withQuery<
-    TQueries extends Record<string, QueryStatus>,
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any> = EmptyDerived<TState>,
-    TActions extends Record<string, (...args: any[]) => any> = EmptyActions,
+    TQueries extends Record<string, QueryRefetch>,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
 >(options: {
     /**
      * QueryClient instance that handles caching and data fetching
@@ -78,6 +85,11 @@ export function withQuery<
                 },
                 queryResult: any
             ) => Partial<TState>;
+
+            /**
+             * Configuration for mapping query status to store state
+             */
+            statusMapping?: StatusMapping;
         }
     >;
 }) {
@@ -89,20 +101,39 @@ export function withQuery<
         const originalOnStoreCreated = config.onStoreCreated;
 
         enhancedConfig.onStoreCreated = (store: Store<TState, TDerived, TActions>) => {
-            // Create a queries container object
-            const queries = {} as Record<string, QueryStatus>;
+            // Create a queries container with only refetch functions
+            const queries = {} as TQueries;
 
             // For each query, set up state tracking and cache subscriptions
             const unsubscribes = Object.entries(options.queries).map(([queryName, queryConfig]) => {
-                // Initialize query status
-                queries[queryName] = {
-                    loading: true,
-                    error: null,
-                    refetch: () =>
-                        queryClient.refetchQueries({
-                            queryKey: queryConfig.queryKey,
-                        }),
-                };
+                // Add refetch function to queries object
+                (queries as Record<string, QueryRefetch>)[queryName] = () =>
+                    queryClient.refetchQueries({
+                        queryKey: queryConfig.queryKey,
+                    });
+
+                // Set initial loading and error states in store if configured
+                runInAction(() => {
+                    // Handle loading state
+                    if (queryConfig.statusMapping?.loading) {
+                        const loadingMapping = queryConfig.statusMapping.loading;
+                        if (typeof loadingMapping === "string") {
+                            (store as any)[loadingMapping] = true;
+                        } else if (typeof loadingMapping === "function") {
+                            loadingMapping(store, true);
+                        }
+                    }
+
+                    // Handle error state
+                    if (queryConfig.statusMapping?.error) {
+                        const errorMapping = queryConfig.statusMapping.error;
+                        if (typeof errorMapping === "string") {
+                            (store as any)[errorMapping] = null;
+                        } else if (typeof errorMapping === "function") {
+                            errorMapping(store, null);
+                        }
+                    }
+                });
 
                 // Helper to check if a query matches our query key
                 const queryMatches = (query: Query<unknown, unknown>) => {
@@ -112,22 +143,38 @@ export function withQuery<
                     );
                 };
 
-                // Subscribe to react-query's cache events for this query
+                // Subscribe to TanStack Query's cache events for this query
                 const unsubscribe = queryClient.getQueryCache().subscribe(event => {
                     if (!event.query) return;
 
                     if (queryMatches(event.query)) {
                         const queryState = event.query.state as QueryState<any, Error>;
 
-                        // Update loading state based on query state
-                        if (queryState.fetchStatus === "fetching") {
-                            queries[queryName].loading = true;
-                        } else {
-                            queries[queryName].loading = false;
-                        }
+                        // Update loading and error states in store if configured
+                        runInAction(() => {
+                            // Handle loading state
+                            if (queryConfig.statusMapping?.loading) {
+                                const loadingMapping = queryConfig.statusMapping.loading;
+                                const isLoading = queryState.fetchStatus === "fetching";
 
-                        // Update error state
-                        queries[queryName].error = queryState.error;
+                                if (typeof loadingMapping === "string") {
+                                    (store as any)[loadingMapping] = isLoading;
+                                } else if (typeof loadingMapping === "function") {
+                                    loadingMapping(store, isLoading);
+                                }
+                            }
+
+                            // Handle error state
+                            if (queryConfig.statusMapping?.error) {
+                                const errorMapping = queryConfig.statusMapping.error;
+
+                                if (typeof errorMapping === "string") {
+                                    (store as any)[errorMapping] = queryState.error;
+                                } else if (typeof errorMapping === "function") {
+                                    errorMapping(store, queryState.error);
+                                }
+                            }
+                        });
 
                         // Update store data if we have successful data
                         if (queryState.data !== undefined && !queryState.error) {
@@ -140,7 +187,9 @@ export function withQuery<
                             const stateUpdates = queryConfig.stateMapping(store, selectedData);
 
                             // Update the store with the mapped data
-                            Object.assign(store, stateUpdates);
+                            runInAction(() => {
+                                Object.assign(store, stateUpdates);
+                            });
                         }
                     }
                 });
@@ -148,7 +197,7 @@ export function withQuery<
                 return unsubscribe;
             });
 
-            // Add the queries object to the store
+            // Add the queries object to the store (only with refetch functions)
             Object.defineProperty(store, "queries", {
                 value: queries,
                 enumerable: true,
@@ -166,11 +215,33 @@ export function withQuery<
                         })
                         .catch(error => {
                             console.error(`Error fetching query "${queryName}":`, error);
-                            if (queries[queryName]) {
-                                queries[queryName].error =
-                                    error instanceof Error ? error : new Error(String(error));
-                                queries[queryName].loading = false;
-                            }
+
+                            // Update loading and error states in store if configured
+                            runInAction(() => {
+                                // Handle error state
+                                if (queryConfig.statusMapping?.error) {
+                                    const errorMapping = queryConfig.statusMapping.error;
+                                    const typedError =
+                                        error instanceof Error ? error : new Error(String(error));
+
+                                    if (typeof errorMapping === "string") {
+                                        (store as any)[errorMapping] = typedError;
+                                    } else if (typeof errorMapping === "function") {
+                                        errorMapping(store, typedError);
+                                    }
+                                }
+
+                                // Handle loading state
+                                if (queryConfig.statusMapping?.loading) {
+                                    const loadingMapping = queryConfig.statusMapping.loading;
+
+                                    if (typeof loadingMapping === "string") {
+                                        (store as any)[loadingMapping] = false;
+                                    } else if (typeof loadingMapping === "function") {
+                                        loadingMapping(store, false);
+                                    }
+                                }
+                            });
                         });
                 }
             });
@@ -181,6 +252,7 @@ export function withQuery<
             }
 
             // Return a cleanup function
+            // Usage of this would need to be implemented in cleanup middleware that runs after this one
             return () => {
                 unsubscribes.forEach(unsubscribe => unsubscribe());
             };

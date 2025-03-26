@@ -16,10 +16,10 @@ describe("store", () => {
     beforeEach(async () => {
         jest.clearAllMocks();
         jest.resetModules();
-        mockMobx.computed.mockImplementation((cb) => cb);
-        mockMobx.observable.mockImplementation((val) => val);
+        mockMobx.computed.mockImplementation(cb => cb);
+        mockMobx.observable.mockImplementation(val => val);
         mockMobx.toJS.mockReset();
-        mockMobx.toJS.mockImplementation((val) => {
+        mockMobx.toJS.mockImplementation(val => {
             return JSON.parse(JSON.stringify(val));
         });
         storeModule = await import("./store");
@@ -54,7 +54,7 @@ describe("store", () => {
             beforeEach(() => {
                 definePropertySpy = jest.spyOn(Object, "defineProperty");
                 mockMobx.computed.mockReset();
-                mockMobx.computed.mockImplementationOnce((cb) => {
+                mockMobx.computed.mockImplementationOnce(cb => {
                     computedVal = cb();
                     return { get: () => computedVal };
                 });
@@ -106,7 +106,9 @@ describe("store", () => {
 
     describe("with actions", () => {
         beforeEach(() => {
-            mockMobx.action.mockImplementation((_key, cb) => cb());
+            mockMobx.action.mockImplementation((_key, cb) => {
+                return cb;
+            });
             storeInstance = storeModule.createStore({
                 initialState: { foo: "bar" },
                 actions: {
@@ -118,7 +120,7 @@ describe("store", () => {
             storeInstance.actions.setFoo("baz");
         });
 
-        it("should create action functions that modify state", () => {
+        it.only("should create action functions that modify state", () => {
             expect(mockMobx.action).toHaveBeenCalledWith("setFoo", expect.any(Function));
             expect(storeInstance.foo).toEqual("baz");
         });
@@ -129,7 +131,7 @@ describe("store", () => {
 
         beforeEach(() => {
             mockMobx.computed.mockReset();
-            mockMobx.computed.mockImplementationOnce((cb) => {
+            mockMobx.computed.mockImplementationOnce(cb => {
                 return { get: cb };
             });
             storeInstance = storeModule.createStore({

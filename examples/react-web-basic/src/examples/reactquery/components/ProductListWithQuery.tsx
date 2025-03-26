@@ -7,17 +7,19 @@ interface ProductListWithQueryProps {
 }
 
 const ProductListWithQuery = observer(({ store }: ProductListWithQueryProps) => {
-    // get state and actions from the store
-    const { sortedProducts, sortBy, sortDirection, selectedProduct } = store;
-
-    // Access query status from the queries property
+    // Use destructuring to get all states directly from the store
     const {
-        loading: productsLoading,
-        error: productsError,
-        refetch: refetchProducts,
-    } = store.queries.products;
+        sortedProducts,
+        sortBy,
+        sortDirection,
+        selectedProduct,
+        isProductsLoading, // Using direct store state property
+        productsError, // Using direct store state property
+        actions: { setSortBy, setSortDirection, setSelectedProductId },
+    } = store;
 
-    const { setSortBy, setSortDirection, setSelectedProductId } = store.actions;
+    // Access refetch function from the queries property
+    const refetchProducts = store.queries.products;
 
     // Access mutations from the mutations property
     const { updateProductQty } = store.mutations;
@@ -56,7 +58,7 @@ const ProductListWithQuery = observer(({ store }: ProductListWithQueryProps) => 
         );
     }
 
-    if (productsLoading) {
+    if (isProductsLoading) {
         return (
             <div className="loading-container">
                 <div className="loading-spinner"></div>
@@ -88,8 +90,8 @@ const ProductListWithQuery = observer(({ store }: ProductListWithQueryProps) => 
                         </select>
                     </label>
                 </div>
-                <button onClick={() => refetchProducts()} disabled={productsLoading}>
-                    {productsLoading ? "Loading..." : "Refresh Products"}
+                <button onClick={() => refetchProducts()} disabled={isProductsLoading}>
+                    {isProductsLoading ? "Loading..." : "Refresh Products"}
                 </button>
             </div>
 

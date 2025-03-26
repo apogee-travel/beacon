@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Store, StoreConfig } from "@apogeelabs/beacon";
+import { BeaconActions, BeaconDerived, BeaconState, Store, StoreConfig } from "@apogeelabs/beacon";
 import { runInAction } from "mobx";
 import { type ActorRefFrom, type AnyActorLogic, type SnapshotFrom } from "xstate";
 
@@ -7,7 +7,7 @@ import { type ActorRefFrom, type AnyActorLogic, type SnapshotFrom } from "xstate
  * Options for the actor-controlled store middleware
  */
 export interface ActorControlledStoreOptions<
-    TState extends Record<string, any>,
+    TState extends BeaconState,
     TMachine extends AnyActorLogic,
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     TActorActions extends Record<string, any> = {},
@@ -45,9 +45,9 @@ export interface ActorControlledStoreOptions<
  * Type helper for a store with actor control
  */
 export type ActorControlledStore<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any>,
-    TActions extends Record<string, (...args: any[]) => any>,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
     TMachine extends AnyActorLogic,
     TActorActions extends Record<string, ActorAction<TMachine, any, any>>,
 > = Store<TState, TDerived, TActions> & {
@@ -65,9 +65,9 @@ export type ActorControlledStore<
  * Middleware that controls a store with an XState actor
  */
 export function withActorControl<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any>,
-    TActions extends Record<string, (...args: any[]) => any>,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
     TMachine extends AnyActorLogic,
     TActorActions extends Record<string, any> = Record<string, never>,
 >(options: ActorControlledStoreOptions<TState, TMachine, TActorActions>) {
@@ -256,9 +256,9 @@ export function defineActorActions<
  * Helper function to create a fully-typed actor-controlled store
  */
 export function createActorControlledStore<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any>,
-    TActions extends Record<string, (...args: any[]) => any>,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
     TMachine extends AnyActorLogic,
     TActorActions extends Record<string, ActorAction<TMachine, any>>,
 >(

@@ -1,5 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// Basic state type
+export type BeaconState = Record<string, any>;
+
+// Derived values type
+export type BeaconDerived<TState = BeaconState> = Record<string, (state: TState) => any>;
+
+// Actions type
+export type BeaconActions<TState = BeaconState> = Record<
+    string,
+    (state: TState, ...args: any[]) => any
+>;
+
 /**
  * Helper type that extracts all parameters of an action function except the first one (state).
  * This allows us to provide proper typing when calling actions from outside the store,
@@ -31,9 +43,9 @@ export type EmptyActions = Record<string, never>;
  * The main configuration interface for creating a store.
  */
 export interface StoreConfig<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any> = EmptyDerived<TState>,
-    TActions extends Record<string, (...args: any[]) => any> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 > {
     /**
      * Initial state values for the store
@@ -70,9 +82,9 @@ export interface StoreConfig<
  * Type definition for a complete store instance
  */
 export type Store<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any> = EmptyDerived<TState>,
-    TActions extends Record<string, (...args: any[]) => any> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 > = TState & {
     [K in keyof TDerived]: ReturnType<TDerived[K]>;
 } & {
@@ -89,9 +101,9 @@ export type Store<
  * Type helper for middleware functions
  */
 export type MiddlewareFunction<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any> = EmptyDerived<TState>,
-    TActions extends Record<string, (...args: any[]) => any> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
     TOptions = any,
 > = (
     options: TOptions

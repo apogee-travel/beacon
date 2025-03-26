@@ -15,12 +15,14 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const productApi = {
     // Fetch all products
     fetchProducts: async (): Promise<Product[]> => {
+        console.log("Simulating fetchProducts API call");
         await delay(800); // Simulate network delay
         return [...mockProducts];
     },
 
     // Update product quantity
     updateProductQty: async (id: string, qty: number): Promise<Product> => {
+        console.log("Simulating updateProductQty API call");
         await delay(600); // Simulate network delay
 
         const product = mockProducts.find(p => p.id === id);

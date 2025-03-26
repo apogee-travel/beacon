@@ -1,5 +1,5 @@
 import { compose, createStore } from "@apogeelabs/beacon";
-import { QueryStatus, withMutation, withQuery } from "@apogeelabs/beacon-reactquery";
+import { withMutation, withQuery } from "@apogeelabs/beacon-reactquery";
 import { QueryClient } from "@tanstack/react-query";
 import { Product } from "../../basic/store/productListStore";
 import { productApi } from "../services/productApi";
@@ -9,6 +9,8 @@ export type ProductQueryState = {
     sortBy: "name" | "price" | "qty";
     sortDirection: "asc" | "desc";
     selectedProductId: string | null;
+    isProductsLoading: boolean; // Added for query status
+    productsError: Error | null; // Added for query error
 };
 
 export type ProductQueryComputedState = {
@@ -16,28 +18,26 @@ export type ProductQueryComputedState = {
     selectedProduct: (state: ProductQueryState) => Product | null;
 };
 
-// Only include UI actions in the actions type
 export type ProductQueryActions = {
     setSortBy: (state: ProductQueryState, sortBy: "name" | "price" | "qty") => void;
     setSortDirection: (state: ProductQueryState, sortDirection: "asc" | "desc") => void;
     setSelectedProductId: (state: ProductQueryState, id: string) => void;
 };
 
-// Define query types
-export type ProductQueryQueries = {
-    products: QueryStatus;
-};
-
-// Define react-query mutation types
 export type ProductQueryMutations = {
     updateProductQty: (params: { id: string; qty: number }) => Promise<Product>;
+};
+
+// Define the queries refetch functions type
+export type ProductQueryQueries = {
+    products: () => Promise<void>;
 };
 
 // Factory function to create store with injected QueryClient
 export const createProductQueryStore = (queryClient: QueryClient) => {
     return createStore<ProductQueryState, ProductQueryComputedState, ProductQueryActions>(
         compose<ProductQueryState, ProductQueryComputedState, ProductQueryActions>(
-            // react-query integration for products query/api fetching
+            // React Query integration for products query
             withQuery<
                 ProductQueryQueries,
                 ProductQueryState,
@@ -49,13 +49,18 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
                     products: {
                         queryKey: ["products"],
                         queryFn: () => productApi.fetchProducts(),
-                        stateMapping: (_state, products) => {
-                            return { products };
+                        stateMapping: (_state, products) => ({
+                            products,
+                        }),
+                        // Map query status to store state properties
+                        statusMapping: {
+                            loading: "isProductsLoading",
+                            error: "productsError",
                         },
                     },
                 },
             }),
-            // react-query integration for mutations (making changes via the API)
+            // React Query integration for mutations
             withMutation<
                 ProductQueryMutations,
                 ProductQueryState,
@@ -96,6 +101,8 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
                 sortBy: "name",
                 sortDirection: "asc",
                 selectedProductId: null,
+                isProductsLoading: false, // Initial loading state
+                productsError: null, // Initial error state
             },
             derived: {
                 sortedProducts: state => {
@@ -131,8 +138,7 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
     );
 };
 
-// helper type for the complete store with all properties
-// maintaining type safety across everything is a bit of a PITA
+// Define a helper type for the complete store with all properties
 export type ProductQueryStore = ReturnType<typeof createProductQueryStore> & {
     queries: ProductQueryQueries;
     mutations: ProductQueryMutations;

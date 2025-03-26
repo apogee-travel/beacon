@@ -1,6 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { action, computed, observable, toJS } from "mobx";
-import type { ActionParameters, EmptyActions, EmptyDerived, Store, StoreConfig } from "./types";
+import type {
+    ActionParameters,
+    BeaconActions,
+    BeaconDerived,
+    BeaconState,
+    EmptyActions,
+    EmptyDerived,
+    Store,
+    StoreConfig,
+} from "./types";
 
 /**
  * Creates a reactive state management store using MobX
@@ -9,9 +18,9 @@ import type { ActionParameters, EmptyActions, EmptyDerived, Store, StoreConfig }
  * @returns An object containing observable state, computed values, actions, and a snapshot function
  */
 export function createStore<
-    TState extends Record<string, any>,
-    TDerived extends Record<string, (state: TState) => any> = EmptyDerived<TState>,
-    TActions extends Record<string, (...args: any[]) => any> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 >(config: StoreConfig<TState, TDerived, TActions>): Store<TState, TDerived, TActions> {
     const initialStateKeys = new Set(Object.keys(config.initialState));
     const derivedKeys = Object.keys(config.derived || {});

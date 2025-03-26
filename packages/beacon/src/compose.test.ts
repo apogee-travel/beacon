@@ -18,14 +18,14 @@ describe("compose", () => {
 
         beforeEach(() => {
             initialConfig = { initialState: { foo: "bar" } };
-            middleware1 = jest.fn((config) => ({
+            middleware1 = jest.fn(config => ({
                 ...config,
                 initialState: {
                     ...config.initialState,
                     added1: "value1",
                 },
             }));
-            middleware2 = jest.fn((config) => ({
+            middleware2 = jest.fn(config => ({
                 ...config,
                 initialState: {
                     ...config.initialState,
@@ -92,7 +92,7 @@ describe("compose", () => {
 
         beforeEach(() => {
             initialConfig = { initialState: { foo: "bar" } };
-            middleware = jest.fn((config) => ({
+            middleware = jest.fn(config => ({
                 ...config,
                 derived: { derivedFoo: (state: any) => state.foo.toUpperCase() },
             }));

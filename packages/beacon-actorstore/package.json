@@ -6,7 +6,7 @@
             "name": "Jim Cowart"
         }
     ],
-    "version": "0.3.1",
+    "version": "0.3.2",
     "license": "ISC",
     "description": "Actor model extension for beacon",
     "engines": {

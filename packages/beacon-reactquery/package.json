@@ -6,7 +6,7 @@
             "name": "Jim Cowart"
         }
     ],
-    "version": "0.3.0",
+    "version": "0.3.1",
     "license": "ISC",
     "description": "beacon middleware for react-query integration with beacon stores",
     "engines": {

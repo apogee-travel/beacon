@@ -1,5 +1,11 @@
 # @apogeelabs/beacon
 
+## 0.4.1
+
+### Patch Changes
+
+- Remove cleanup function from possible onStoreCreated return value types
+
 ## 0.4.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @apogeelabs/beacon-reactquery
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies
+    - @apogeelabs/beacon@0.4.1
+
 ## 0.3.0
 
 ### Minor Changes

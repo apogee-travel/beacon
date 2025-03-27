@@ -84,7 +84,7 @@ export interface StoreConfig<
      * This is particularly useful for middleware to set up side effects or subscriptions
      * @returns A cleanup function that will be called when the store is disposed (optional)
      */
-    onStoreCreated?: (store: Store<TState, TDerived, TActions>) => CleanupFunction | void;
+    onStoreCreated?: (store: Store<TState, TDerived, TActions>) => void;
 }
 
 /**

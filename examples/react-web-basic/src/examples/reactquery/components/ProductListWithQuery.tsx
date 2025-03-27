@@ -1,3 +1,5 @@
+// example app ProducListWithQuery.tsx
+
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { ProductQueryStore } from "../store/productQueryStore";
@@ -13,16 +15,13 @@ const ProductListWithQuery = observer(({ store }: ProductListWithQueryProps) => 
         sortBy,
         sortDirection,
         selectedProduct,
-        isProductsLoading, // Using direct store state property
-        productsError, // Using direct store state property
+        isProductsLoading,
+        productsError,
+        isInitialLoading,
         actions: { setSortBy, setSortDirection, setSelectedProductId },
+        queries: { products: refetchProducts }, // Access refetch function from the queries property
+        mutations: { updateProductQty }, // Access mutations from the mutations property
     } = store;
-
-    // Access refetch function from the queries property
-    const refetchProducts = store.queries.products;
-
-    // Access mutations from the mutations property
-    const { updateProductQty } = store.mutations;
 
     // Local state for quantity input
     const [qtyInput, setQtyInput] = useState<number | "">("");
@@ -49,6 +48,16 @@ const ProductListWithQuery = observer(({ store }: ProductListWithQueryProps) => 
             }
         }
     };
+
+    // If we're in initial loading state, show a different loader
+    if (isInitialLoading) {
+        return (
+            <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Loading initial products data...</p>
+            </div>
+        );
+    }
 
     if (productsError) {
         return (

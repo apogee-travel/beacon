@@ -1,5 +1,11 @@
 # @apogeelabs/beacon
 
+## 0.4.0
+
+### Minor Changes
+
+- Cleanup PoC work
+
 ## 0.3.0
 
 ### Minor Changes

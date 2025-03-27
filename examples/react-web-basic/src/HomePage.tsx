@@ -1,3 +1,5 @@
+// example app HomePage.tsx
+
 import { Link } from "react-router-dom";
 
 function HomePage() {

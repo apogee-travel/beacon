@@ -1,10 +1,21 @@
+// @apogeelabs/beacon store.ts
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { action, computed, observable, toJS } from "mobx";
+import {
+    action,
+    computed,
+    IComputedValue,
+    isObservable,
+    observable,
+    runInAction,
+    toJS,
+} from "mobx";
 import type {
     ActionParameters,
     BeaconActions,
     BeaconDerived,
     BeaconState,
+    CleanupFunction,
     EmptyActions,
     EmptyDerived,
     Store,
@@ -37,6 +48,9 @@ export function createStore<
         ...config.initialState,
     });
 
+    // Collection of computed property instances for cleanup
+    const computedProperties: Record<string, IComputedValue<any>> = {};
+
     // Add derived (computed) properties
     if (config.derived) {
         for (const key in config.derived) {
@@ -44,6 +58,9 @@ export function createStore<
             const computedValue = computed(() => {
                 return config.derived![key](store as any);
             });
+
+            // Store the computed property for cleanup
+            computedProperties[key] = computedValue;
 
             // Add the computed property to the store
             Object.defineProperty(store, key, {
@@ -59,6 +76,12 @@ export function createStore<
     if (config.actions) {
         for (const key in config.actions) {
             actions[key] = action(key, (...args: any[]) => {
+                // Check if store is disposed before executing actions
+                if ((store as any).isDisposed) {
+                    console.warn(`Cannot execute action '${key}': store has been disposed`);
+                    return;
+                }
+
                 // Wrap in action to ensure changes are tracked properly
                 return config.actions![key](
                     store as any,
@@ -70,6 +93,12 @@ export function createStore<
 
     // Create the getStateSnapshot method
     const getStateSnapshot = (options?: { withDerived?: boolean }) => {
+        // Check if store is disposed
+        if ((store as any).isDisposed) {
+            console.warn("Cannot get state snapshot: store has been disposed");
+            return null; //
+        }
+
         const snapshot = toJS(store);
 
         if (config.derived) {
@@ -80,12 +109,93 @@ export function createStore<
             }
         }
 
+        // Remove special properties from snapshot
         delete snapshot.actions;
+        delete snapshot.isDisposed;
+        delete snapshot.dispose;
+        delete snapshot.getStateSnapshot;
 
         return snapshot;
     };
 
-    // Add actions and getStateSnapshot to the store
+    // Array to store cleanup functions
+    const cleanupFunctions: CleanupFunction[] = [];
+
+    // Function to register cleanup
+    const registerCleanup = (cleanupFn: CleanupFunction) => {
+        if (typeof cleanupFn !== "function") {
+            console.warn("Attempted to register non-function as cleanup");
+            return;
+        }
+
+        if ((store as any).isDisposed) {
+            console.warn("Attempted to register cleanup on disposed store");
+            return;
+        }
+
+        cleanupFunctions.push(cleanupFn);
+    };
+
+    // Create the dispose method
+    const dispose = () => {
+        // Prevent multiple disposals
+        if ((store as any).isDisposed) {
+            return;
+        }
+
+        // Mark store as disposed to prevent further operations
+        (store as any).isDisposed = true;
+
+        // Execute all cleanup functions
+        while (cleanupFunctions.length > 0) {
+            const cleanup = cleanupFunctions.pop();
+            try {
+                cleanup?.();
+            } catch (error) {
+                console.error("Error in cleanup function:", error);
+            }
+        }
+
+        runInAction(() => {
+            // Clean up state properties - simple approach intended to let garbage collection handle most cleanup
+            for (const key in initialStateKeys) {
+                try {
+                    const value = (store as any)[key];
+                    // Clear arrays if possible
+                    if (
+                        Array.isArray(value) &&
+                        isObservable(value) &&
+                        typeof (value as any).clear === "function"
+                    ) {
+                        (value as any).clear();
+                    }
+                    (store as any)[key] = undefined;
+                } catch (error) {
+                    console.warn(`Error disposing property '${key}':`, error);
+                    // Fallback - set to undefined
+                    try {
+                        (store as any)[key] = undefined;
+                    } catch (e) {
+                        console.warn(`Failed to set ${key} to undefined:`, e);
+                    }
+                }
+            }
+
+            // Make actions no-ops to prevent calls to disposed store
+            for (const key in actions) {
+                (actions as any)[key] = () => {
+                    console.warn(`Cannot execute action '${key}': store has been disposed`);
+                };
+            }
+
+            // Clear all references
+            for (const key in computedProperties) {
+                computedProperties[key] = null as any;
+            }
+        });
+    };
+
+    // Add actions and methods to the store
     Object.defineProperty(store, "actions", {
         value: actions,
         enumerable: true,
@@ -96,6 +206,25 @@ export function createStore<
         value: getStateSnapshot,
         enumerable: true,
         configurable: true,
+    });
+
+    Object.defineProperty(store, "registerCleanup", {
+        value: registerCleanup,
+        enumerable: true,
+        configurable: true,
+    });
+
+    Object.defineProperty(store, "dispose", {
+        value: dispose,
+        enumerable: true,
+        configurable: true,
+    });
+
+    Object.defineProperty(store, "isDisposed", {
+        value: false,
+        enumerable: false,
+        configurable: true,
+        writable: true,
     });
 
     // Call onStoreCreated if provided

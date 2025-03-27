@@ -1,3 +1,5 @@
+// example app App.tsx
+
 import { Outlet, NavLink } from "react-router-dom";
 import "./App.css";
 import reactLogo from "./assets/react.svg";

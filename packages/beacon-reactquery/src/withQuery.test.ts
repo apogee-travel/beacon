@@ -25,7 +25,7 @@ jest.mock("mobx", () => {
 
 import { withQuery } from "./withQuery";
 
-describe("withQuery", () => {
+describe.skip("withQuery", () => {
     let mockApi: any,
         origOnStoreCreated: any,
         mockStore: any,

@@ -1,6 +1,8 @@
+// @apogeelabs/beacon-reactquery withQuery.ts
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BeaconActions, BeaconDerived, BeaconState, Store, StoreConfig } from "@apogeelabs/beacon";
-import { Query, QueryClient, QueryState } from "@tanstack/react-query";
+import { QueryClient, QueryState } from "@tanstack/react-query";
 import { runInAction } from "mobx";
 
 /**
@@ -30,15 +32,25 @@ export type StoreWithQueries<
     queries: TQueries;
 };
 
-/**
- * Middleware that integrates TanStack Query's data fetching capabilities with Beacon stores.
- *
- * This middleware connects React Query to Beacon stores, mapping query results and status
- * directly to store state properties. It only uses a minimal queries property for refetch functions.
- *
- * @param options Configuration object containing the QueryClient and query definitions
- * @returns A middleware function that enhances a Beacon store configuration
- */
+// @apogeelabs/beacon-reactquery withQuery.ts
+
+/* ... existing imports ... */
+
+// Add new options type for initial loading state
+export type InitialQueriesLoadingOptions = {
+    /**
+     * Name of the property to track initial loading state
+     * This boolean property will be true while initial queries are loading
+     * and will become false when all enabled initial queries complete
+     */
+    propertyName: string;
+
+    /**
+     * Optional callback fired when all initial queries complete
+     */
+    onComplete?: (store: any) => void;
+};
+
 export function withQuery<
     TQueries extends Record<string, QueryRefetch>,
     TState extends BeaconState,
@@ -56,42 +68,25 @@ export function withQuery<
     queries: Record<
         keyof TQueries,
         {
-            /**
-             * Unique identifier for this query in the Query cache
-             */
             queryKey: unknown[];
-
-            /**
-             * Function that performs the actual data fetching
-             */
             queryFn: () => Promise<any>;
-
-            /**
-             * Optional transformer for query results before they update the store
-             */
             selector?: (data: any) => any;
-
-            /**
-             * Whether this query should be executed immediately when the store is created
-             */
             enabled?: boolean;
-
-            /**
-             * Function that determines how query results map to store state
-             */
             stateMapping: (
                 state: TState & {
                     [K in keyof TDerived]: ReturnType<TDerived[K]>;
                 },
                 queryResult: any
             ) => Partial<TState>;
-
-            /**
-             * Configuration for mapping query status to store state
-             */
             statusMapping?: StatusMapping;
         }
     >;
+
+    /**
+     * Configuration for tracking initial queries loading state
+     * When provided, a boolean property will be added to track loading
+     */
+    initialQueriesLoading?: InitialQueriesLoadingOptions;
 }) {
     return (
         config: StoreConfig<TState, TDerived, TActions>
@@ -100,13 +95,22 @@ export function withQuery<
         const enhancedConfig = { ...config };
         const originalOnStoreCreated = config.onStoreCreated;
 
+        // Add the initial loading property to state if configured
+        if (options.initialQueriesLoading?.propertyName) {
+            const propName = options.initialQueriesLoading.propertyName;
+            enhancedConfig.initialState = {
+                ...enhancedConfig.initialState,
+                [propName]: true, // Start with loading state
+            };
+        }
+
         enhancedConfig.onStoreCreated = (store: Store<TState, TDerived, TActions>) => {
-            // Create a queries container with only refetch functions
+            // Create a queries container with refetch functions
             const queries = {} as TQueries;
 
-            // For each query, set up state tracking and cache subscriptions
+            // Set up state tracking and cache subscriptions
             const unsubscribes = Object.entries(options.queries).map(([queryName, queryConfig]) => {
-                // Add refetch function to queries object
+                // Add refetch function to queries object (we may want to refactor this to be an explictly named function on an object here)
                 (queries as Record<string, QueryRefetch>)[queryName] = () =>
                     queryClient.refetchQueries({
                         queryKey: queryConfig.queryKey,
@@ -135,22 +139,21 @@ export function withQuery<
                     }
                 });
 
-                // Helper to check if a query matches our query key
-                const queryMatches = (query: Query<unknown, unknown>) => {
-                    return (
-                        JSON.stringify(query.options.queryKey) ===
-                        JSON.stringify(queryConfig.queryKey)
-                    );
-                };
-
-                // Subscribe to TanStack Query's cache events for this query
+                // Subscribe to cache events for this query
                 const unsubscribe = queryClient.getQueryCache().subscribe(event => {
                     if (!event.query) return;
 
-                    if (queryMatches(event.query)) {
+                    // Skip processing for disposed stores
+                    if ((store as any).isDisposed) return;
+
+                    const queryMatches =
+                        JSON.stringify(event.query.options.queryKey) ===
+                        JSON.stringify(queryConfig.queryKey);
+
+                    if (queryMatches) {
                         const queryState = event.query.state as QueryState<any, Error>;
 
-                        // Update loading and error states in store if configured
+                        // Update loading and error states in store
                         runInAction(() => {
                             // Handle loading state
                             if (queryConfig.statusMapping?.loading) {
@@ -178,12 +181,15 @@ export function withQuery<
 
                         // Update store data if we have successful data
                         if (queryState.data !== undefined && !queryState.error) {
-                            // Apply selector if provided to transform the data
+                            // Apply selector if provided
                             const selectedData = queryConfig.selector
                                 ? queryConfig.selector(queryState.data)
                                 : queryState.data;
 
                             // Map the query result to store state
+                            // Another potential refactor point here - we may want to
+                            // have state set explicitly in the state mapping vs returning
+                            // here and having it assigned below
                             const stateUpdates = queryConfig.stateMapping(store, selectedData);
 
                             // Update the store with the mapped data
@@ -197,65 +203,79 @@ export function withQuery<
                 return unsubscribe;
             });
 
-            // Add the queries object to the store (only with refetch functions)
+            // Add the queries object to the store
             Object.defineProperty(store, "queries", {
                 value: queries,
                 enumerable: true,
                 configurable: false,
             });
 
-            // Initialize enabled queries when the store is created
-            Object.entries(options.queries).forEach(([queryName, queryConfig]) => {
-                if (queryConfig.enabled !== false) {
-                    // Use fetchQuery to immediately execute the query
+            // Handle initial queries loading state tracking
+            const initialLoadingProp = options.initialQueriesLoading?.propertyName;
+            const enabledQueries = Object.entries(options.queries).filter(
+                ([_name, config]) => config.enabled !== false
+            );
+
+            // Set up promise tracking for enabled queries
+            if (initialLoadingProp && enabledQueries.length > 0) {
+                // Create a counter to track query completion
+                let pendingQueries = enabledQueries.length;
+
+                // Handle query completion
+                const onQueryComplete = () => {
+                    pendingQueries--;
+
+                    // If all queries have completed, update loading state
+                    if (pendingQueries <= 0 && !(store as any).isDisposed) {
+                        runInAction(() => {
+                            // Update loading state to false
+                            (store as any)[initialLoadingProp] = false;
+
+                            // Call completion callback if configured
+                            if (options.initialQueriesLoading?.onComplete) {
+                                options.initialQueriesLoading.onComplete(store);
+                            }
+                        });
+                    }
+                };
+
+                // Initialize queries and track their completion
+                enabledQueries.forEach(([queryName, queryConfig]) => {
                     queryClient
                         .fetchQuery({
                             queryKey: queryConfig.queryKey,
                             queryFn: queryConfig.queryFn,
                         })
+                        .then(() => {
+                            onQueryComplete();
+                        })
                         .catch(error => {
                             console.error(`Error fetching query "${queryName}":`, error);
-
-                            // Update loading and error states in store if configured
-                            runInAction(() => {
-                                // Handle error state
-                                if (queryConfig.statusMapping?.error) {
-                                    const errorMapping = queryConfig.statusMapping.error;
-                                    const typedError =
-                                        error instanceof Error ? error : new Error(String(error));
-
-                                    if (typeof errorMapping === "string") {
-                                        (store as any)[errorMapping] = typedError;
-                                    } else if (typeof errorMapping === "function") {
-                                        errorMapping(store, typedError);
-                                    }
-                                }
-
-                                // Handle loading state
-                                if (queryConfig.statusMapping?.loading) {
-                                    const loadingMapping = queryConfig.statusMapping.loading;
-
-                                    if (typeof loadingMapping === "string") {
-                                        (store as any)[loadingMapping] = false;
-                                    } else if (typeof loadingMapping === "function") {
-                                        loadingMapping(store, false);
-                                    }
-                                }
-                            });
+                            onQueryComplete(); // Still mark as complete even if there was an error
                         });
-                }
+                });
+            }
+            // If no enabled queries but initialLoadingProp is set, mark as complete immediately
+            else if (initialLoadingProp) {
+                runInAction(() => {
+                    (store as any)[initialLoadingProp] = false;
+
+                    if (options.initialQueriesLoading?.onComplete) {
+                        options.initialQueriesLoading.onComplete(store);
+                    }
+                });
+            }
+
+            // Register cleanup function directly using the new method
+            store.registerCleanup(() => {
+                // Unsubscribe from all query cache subscriptions
+                unsubscribes.forEach(unsubscribe => unsubscribe());
             });
 
             // Call the original onStoreCreated if it exists
             if (originalOnStoreCreated) {
                 originalOnStoreCreated(store);
             }
-
-            // Return a cleanup function
-            // Usage of this would need to be implemented in cleanup middleware that runs after this one
-            return () => {
-                unsubscribes.forEach(unsubscribe => unsubscribe());
-            };
         };
 
         return enhancedConfig;

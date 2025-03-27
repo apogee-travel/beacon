@@ -1,3 +1,5 @@
+// example app productQueryStore.ts
+
 import { compose, createStore } from "@apogeelabs/beacon";
 import { withMutation, withQuery } from "@apogeelabs/beacon-reactquery";
 import { QueryClient } from "@tanstack/react-query";
@@ -9,8 +11,9 @@ export type ProductQueryState = {
     sortBy: "name" | "price" | "qty";
     sortDirection: "asc" | "desc";
     selectedProductId: string | null;
-    isProductsLoading: boolean; // Added for query status
-    productsError: Error | null; // Added for query error
+    isProductsLoading: boolean;
+    productsError: Error | null;
+    isInitialLoading?: boolean;
 };
 
 export type ProductQueryComputedState = {
@@ -59,8 +62,15 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
                         },
                     },
                 },
+                // Add initialQueriesLoading tracking
+                initialQueriesLoading: {
+                    propertyName: "isInitialLoading",
+                    onComplete: _store => {
+                        console.log("All initial queries have completed loading");
+                    },
+                },
             }),
-            // React Query integration for mutations
+            // React Query integration for mutations (unchanged)
             withMutation<
                 ProductQueryMutations,
                 ProductQueryState,
@@ -101,8 +111,9 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
                 sortBy: "name",
                 sortDirection: "asc",
                 selectedProductId: null,
-                isProductsLoading: false, // Initial loading state
-                productsError: null, // Initial error state
+                isProductsLoading: false,
+                productsError: null,
+                // No need to add isInitialLoading here ?? - middleware adds it automatically
             },
             derived: {
                 sortedProducts: state => {

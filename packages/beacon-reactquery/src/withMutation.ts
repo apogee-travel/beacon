@@ -1,3 +1,5 @@
+// @apogeelabs/beacon-reactquery withMutation.ts
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BeaconActions, BeaconDerived, BeaconState, Store, StoreConfig } from "@apogeelabs/beacon";
 import { QueryClient } from "@tanstack/react-query";
@@ -21,10 +23,10 @@ export type StoreWithMutations<
 };
 
 /**
- * Middleware that integrates TanStack Query's mutation capabilities with Beacon stores.
+ * Middleware that integrates @tanstack/react-query mutation capabilities with Beacon stores.
  *
  * This middleware adds a new `mutations` property to the store containing functions
- * that perform data mutations via TanStack Query, with support for optimistic updates.
+ * that perform data mutations via @tanstack/react-query, with support for optimistic updates.
  *
  * @param options Configuration object containing the QueryClient and mutation definitions
  * @returns A middleware function that enhances a Beacon store configuration
@@ -157,15 +159,17 @@ export function withMutation<
                 configurable: false,
             });
 
+            // In the current implementation, there aren't any active subscriptions to clean up,
+            // but adding this for future-proofing or if there's state that needs to be reset
+            store.registerCleanup(() => {
+                // Any mutation-specific cleanup would go here
+                // For now, this is just a placeholder
+            });
+
             // Call the original onStoreCreated if it exists
             if (originalOnStoreCreated) {
                 originalOnStoreCreated(store);
             }
-
-            // Return a cleanup function if needed
-            return () => {
-                // Any cleanup logic would go here
-            };
         };
 
         // Return the enhanced store configuration

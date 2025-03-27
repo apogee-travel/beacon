@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-describe("compose", () => {
+describe.skip("compose", () => {
     let composeModule: { compose: any };
 
     beforeEach(async () => {

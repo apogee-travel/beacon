@@ -1,3 +1,5 @@
+// @apogeelabs/beacon compose.ts
+
 import {
     BeaconActions,
     BeaconDerived,

@@ -1,3 +1,5 @@
+// @apogeelabs/beacon types.ts
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Basic state type
@@ -11,6 +13,12 @@ export type BeaconActions<TState = BeaconState> = Record<
     string,
     (state: TState, ...args: any[]) => any
 >;
+
+/**
+ * Function that handles cleanup when a store is disposed
+ * Used by middleware to register disposal handlers
+ */
+export type CleanupFunction = () => void;
 
 /**
  * Helper type that extracts all parameters of an action function except the first one (state).
@@ -74,8 +82,9 @@ export interface StoreConfig<
     /**
      * Optional callback that is executed after the store is created
      * This is particularly useful for middleware to set up side effects or subscriptions
+     * @returns A cleanup function that will be called when the store is disposed (optional)
      */
-    onStoreCreated?: (store: Store<TState, TDerived, TActions>) => void;
+    onStoreCreated?: (store: Store<TState, TDerived, TActions>) => CleanupFunction | void;
 }
 
 /**
@@ -91,10 +100,35 @@ export type Store<
     actions: {
         [K in keyof TActions]: (...args: ActionParameters<TActions[K]>) => ReturnType<TActions[K]>;
     };
+    /**
+     * Returns a snapshot of the store's state, including derived values (if withDerived is true)
+     * This is useful for debugging or persisting the store state
+     */
     getStateSnapshot: (opt?: { withDerived?: boolean }) => TState &
         Partial<{
             [K in keyof TDerived]: ReturnType<TDerived[K]>;
         }>;
+
+    /**
+     * Registers a function to be called when the store is disposed
+     * This allows middleware to clean up resources when the store is no longer needed
+     */
+    registerCleanup: (cleanupFn: CleanupFunction) => void;
+
+    /**
+     * Disposes of the store, cleaning up all resources and preventing memory leaks
+     * - Calls all middleware cleanup functions
+     * - Cleans up MobX-specific artifacts
+     * - Clears store state to prevent zombie references
+     * - Marks the store as disposed to prevent further use
+     */
+    dispose: () => void;
+
+    /**
+     * Indicates whether this store has been disposed
+     * Used to prevent operating on stores that have been cleaned up
+     */
+    isDisposed: boolean;
 };
 
 /**

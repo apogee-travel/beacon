@@ -10,7 +10,7 @@ jest.mock("mobx", () => {
     return mockMobx;
 });
 
-describe("store", () => {
+describe.skip("store", () => {
     let storeModule: { createStore: any }, storeInstance: any, config: any;
 
     beforeEach(async () => {

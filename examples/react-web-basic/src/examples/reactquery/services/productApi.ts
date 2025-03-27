@@ -1,3 +1,5 @@
+// example app productApi.tsx
+
 import { Product } from "../../basic/store/productListStore";
 
 // Mock product data

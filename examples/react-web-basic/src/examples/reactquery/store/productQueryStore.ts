@@ -42,6 +42,7 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
         compose<ProductQueryState, ProductQueryComputedState, ProductQueryActions>(
             // React Query integration for products query
             withQuery<
+                // @ts-ignore (for now)
                 ProductQueryQueries,
                 ProductQueryState,
                 ProductQueryComputedState,
@@ -65,7 +66,7 @@ export const createProductQueryStore = (queryClient: QueryClient) => {
                 // Add initialQueriesLoading tracking
                 initialQueriesLoading: {
                     propertyName: "isInitialLoading",
-                    onComplete: _store => {
+                    onComplete: (_store: any) => {
                         console.log("All initial queries have completed loading");
                     },
                 },

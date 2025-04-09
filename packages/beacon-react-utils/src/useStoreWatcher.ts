@@ -1,5 +1,5 @@
 import type { BeaconActions, BeaconDerived, BeaconState, Store } from "@apogeelabs/beacon";
-import isEqual from "lodash/isEqual";
+import _ from "lodash";
 import { reaction, toJS } from "mobx";
 import { useEffect } from "react";
 
@@ -36,7 +36,7 @@ export function useStoreWatcher<
             },
             (value, previousValue) => {
                 // Only trigger if the value actually changed using deep comparison
-                if (!previousValue || !isEqual(value, previousValue)) {
+                if (!previousValue || !_.isEqual(value, previousValue)) {
                     onChange(value);
                 }
             },

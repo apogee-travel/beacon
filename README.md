@@ -71,29 +71,29 @@ The Beacon equivalent (in TypeScript) would look like this:
 ```typescript
 import { createStore } from "beacon";
 
-export const productListStore = createStore<TodoListState, TodoListComputedState, TodoListActions>({
+export const todoStore = createStore<TodoListState, TodoListComputedState, TodoListActions>({
     initialState: {
         todos = [],
         pendingRequests = 0,
     },
     derived: {
-        completedTodosCount() {
-            return this.todos.filter(todo => todo.completed === true).length;
+        completedTodosCount(state) {
+            return state.todos.filter(todo => todo.completed === true).length;
         },
-        report() {
-            if (this.todos.length === 0) {
+        report(state) {
+            if (state.todos.length === 0) {
                 return "<none>";
             }
-            const nextTodo = this.todos.find(todo => todo.completed === false);
+            const nextTodo = state.todos.find(todo => todo.completed === false);
             return (
                 `Next todo: "${nextTodo ? nextTodo.task : "<none>"}". ` +
-                `Progress: ${this.completedTodosCount}/${this.todos.length}`
+                `Progress: ${state.completedTodosCount}/${state.todos.length}`
             );
         },
     },
     actions: {
-        addTodo(task) {
-            this.todos.push({
+        addTodo(state, task) {
+            state.todos.push({
                 task: task,
                 completed: false,
                 assignee: null,
@@ -124,7 +124,7 @@ import { browserStorageMiddleware } from "beacon-browserstorage";
 
 // When only using one middleware, it's easiest to just invoke it and pass it as the arg to createStore.
 // The other example below shows how multiple middleware can be composed.
-export const productListStore = createStore<
+export const todoStore = createStore<
     TodoListState,
     TodoListComputedState,
     TodoListActions
@@ -139,13 +139,13 @@ export const productListStore = createStore<
 );
 
 // With the optional compose helper method, you can easily compose a chain of middleware
-export const productListStore = createStore<
+export const todoStore = createStore<
     TodoListState,
     TodoListComputedState,
     TodoListActions
 >(
 
-    compose<ProductListState, ProductListComputedState, ProductListActions>(
+    compose<TodoListState, TodoListComputedState, TodoListActions>(
         browserStorageMiddleware({ key: "todoListStore" }),
         someTelemtryMiddleware({ foo: "bar" }),
         someChromeDevToolsMiddleware({ cal: "zone" })
@@ -158,3 +158,7 @@ export const productListStore = createStore<
     })
 );
 ```
+
+## Developing Beacon
+
+See the [DEVELOP readme](./DEVELOP.md) for information on how to develop within this repo.

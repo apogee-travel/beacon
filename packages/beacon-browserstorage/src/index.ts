@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BeaconActions, BeaconDerived, BeaconState } from "@apogeelabs/beacon";
+import type { BeaconActions, BeaconDerived, BeaconState } from "@apogeelabs/beacon";
 import { reaction } from "mobx";
 
 export interface BrowserStorageOptions {
@@ -19,7 +19,8 @@ export function browserStorageMiddleware<
     _TDerived extends BeaconDerived<TState>,
     _TActions extends BeaconActions<TState>,
 >(options: BrowserStorageOptions) {
-    const storage = options.storageType === "session" ? sessionStorage : localStorage;
+    const storageType = options.storageType || "local";
+    const storage = storageType === "session" ? sessionStorage : localStorage;
 
     return (config: any) => {
         // Load initial state from storage if available
@@ -30,7 +31,7 @@ export function browserStorageMiddleware<
                 config.initialState = { ...config.initialState, ...parsed };
             }
         } catch (e) {
-            console.error(`Failed to load state from ${options.storageType || "local"}Storage`, e);
+            console.error(`Failed to load state from ${storageType}Storage`, e);
         }
 
         // Setup onStoreCreated to persist changes

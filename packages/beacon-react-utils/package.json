@@ -6,7 +6,7 @@
             "name": "Jim Cowart"
         }
     ],
-    "version": "0.2.0",
+    "version": "1.0.0",
     "license": "ISC",
     "description": "beacon middleware for react-query integration with beacon stores",
     "engines": {
@@ -47,12 +47,12 @@
         "@apogeelabs/beacon": "workspace:*",
         "lodash": "4.17.16",
         "mobx": "^6.13.7",
-        "react": "^18.0.0"
+        "react": "^19.2.3"
     },
     "devDependencies": {
         "@types/jest": "^29.5.5",
         "@types/lodash": "4.17.16",
-        "@types/react": "^18.0.0",
+        "@types/react": "^19.2.3",
         "eslint": "^8.0.1",
         "eslint-config-standard": "^17.1.0",
         "eslint-plugin-import": "^2.25.2",

@@ -1,7 +1,7 @@
 import type { BeaconActions, BeaconDerived, BeaconState, Store } from "@apogeelabs/beacon";
 import _ from "lodash";
 import { reaction, toJS } from "mobx";
-import { useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 /**
  * A custom React hook to watch for state changes in a beacon store.
@@ -27,17 +27,22 @@ export function useStoreWatcher<
     onChange: (value: T) => void,
     fireImmediately: boolean = false
 ): void {
+    // Use useEffectEvent to wrap callbacks so they don't need to be in the dependency array
+    // This prevents unnecessary re-runs when consumers pass inline functions
+    const stableSelector = useEffectEvent(selector);
+    const stableOnChange = useEffectEvent(onChange);
+
     useEffect(() => {
         // Set up a MobX reaction to watch the selected state
         const disposer = reaction(
             () => {
                 // Convert to plain JS to strip MobX observable properties
-                return toJS(selector(store));
+                return toJS(stableSelector(store));
             },
             (value, previousValue) => {
                 // Only trigger if the value actually changed using deep comparison
                 if (!previousValue || !_.isEqual(value, previousValue)) {
-                    onChange(value);
+                    stableOnChange(value);
                 }
             },
             { fireImmediately }
@@ -52,7 +57,7 @@ export function useStoreWatcher<
         return () => {
             disposer();
         };
-    }, [store, selector, onChange, fireImmediately]);
+    }, [store, fireImmediately]);
 }
 
 export default useStoreWatcher;

@@ -16,22 +16,22 @@ importers:
         version: link:packages/beacon-reactquery
       '@tanstack/react-query':
         specifier: ^5.69.0
-        version: 5.69.0(react@19.0.0)
+        version: 5.69.0(react@19.2.3)
       '@types/lodash':
         specifier: 4.17.16
         version: 4.17.16
       '@types/react':
-        specifier: ^19.0.10
-        version: 19.0.11
+        specifier: ^19.2.3
+        version: 19.2.7
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
       react:
-        specifier: ^19.0.0
-        version: 19.0.0
+        specifier: ^19.2.3
+        version: 19.2.3
       react-query:
         specifier: ^3.39.3
-        version: 3.39.3(react@19.0.0)
+        version: 3.39.3(react@19.2.3)
     devDependencies:
       '@changesets/cli':
         specifier: ^2.26.2
@@ -79,11 +79,11 @@ importers:
   examples/actor-store:
     dependencies:
       '@apogeelabs/beacon':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: workspace:*
+        version: link:../../packages/beacon
       '@apogeelabs/beacon-actorstore':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: workspace:*
+        version: link:../../packages/beacon-actorstore
       mobx:
         specifier: ^6.13.7
         version: 6.13.7
@@ -117,32 +117,32 @@ importers:
         version: 0.2.0
       '@apogeelabs/beacon-reactquery':
         specifier: ^0.1.1
-        version: 0.1.2(react@19.0.0)
+        version: 0.1.2(react@19.2.3)
       mobx:
         specifier: ^6.13.7
         version: 6.13.7
       mobx-react-lite:
         specifier: ^4.1.0
-        version: 4.1.0(mobx@6.13.7)(react-dom@19.0.0)(react@19.0.0)
+        version: 4.1.0(mobx@6.13.7)(react-dom@19.2.3)(react@19.2.3)
       react:
-        specifier: ^19.0.0
-        version: 19.0.0
+        specifier: ^19.2.3
+        version: 19.2.3
       react-dom:
-        specifier: ^19.0.0
-        version: 19.0.0(react@19.0.0)
+        specifier: ^19.2.3
+        version: 19.2.3(react@19.2.3)
       react-router-dom:
         specifier: ^7.4.0
-        version: 7.4.0(react-dom@19.0.0)(react@19.0.0)
+        version: 7.4.0(react-dom@19.2.3)(react@19.2.3)
     devDependencies:
       '@eslint/js':
         specifier: ^9.21.0
         version: 9.22.0
       '@types/react':
-        specifier: ^19.0.10
-        version: 19.0.11
+        specifier: ^19.2.3
+        version: 19.2.7
       '@types/react-dom':
-        specifier: ^19.0.4
-        version: 19.0.4(@types/react@19.0.11)
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.7)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.3.4(vite@6.2.2)
@@ -300,8 +300,8 @@ importers:
         specifier: ^6.13.7
         version: 6.13.7
       react:
-        specifier: ^18.0.0
-        version: 18.3.1
+        specifier: ^19.2.3
+        version: 19.2.3
     devDependencies:
       '@types/jest':
         specifier: ^29.5.5
@@ -310,8 +310,8 @@ importers:
         specifier: 4.17.16
         version: 4.17.16
       '@types/react':
-        specifier: ^18.0.0
-        version: 18.3.20
+        specifier: ^19.2.3
+        version: 19.2.7
       eslint:
         specifier: ^8.0.1
         version: 8.57.1
@@ -347,7 +347,7 @@ importers:
         version: link:../beacon
       '@tanstack/react-query':
         specifier: ^5.69.0
-        version: 5.69.0(react@19.0.0)
+        version: 5.69.0(react@19.2.3)
       mobx:
         specifier: ^6.13.7
         version: 6.13.7
@@ -393,15 +393,6 @@ packages:
       '@jridgewell/trace-mapping': 0.3.25
     dev: true
 
-  /@apogeelabs/beacon-actorstore@0.2.0:
-    resolution: {integrity: sha512-Zmpa3CUCNIbA444cTM5K5g0RCAyUonmCc0P0XFLNNv+Icgq4mmSWIvzrjMr9fr/zXwiQy06V5ekG+Q+SLtF72A==}
-    engines: {node: '>=18'}
-    dependencies:
-      '@apogeelabs/beacon': 0.2.0
-      mobx: 6.13.7
-      xstate: 5.19.2
-    dev: false
-
   /@apogeelabs/beacon-browserstorage@0.2.0:
     resolution: {integrity: sha512-KR/rhXNwY/QWylNl0uMhyh2ud/MuyVxVsutcz1aoo55Hyk0MkdBSTQ2VmjIBlYzBSnz2cE/KumvMXQ1z8mNGkw==}
     engines: {node: '>=18'}
@@ -410,12 +401,12 @@ packages:
       mobx: 6.13.7
     dev: false
 
-  /@apogeelabs/beacon-reactquery@0.1.2(react@19.0.0):
+  /@apogeelabs/beacon-reactquery@0.1.2(react@19.2.3):
     resolution: {integrity: sha512-RofYY6wJeyXCoSvANLCTyU3czbwE5jCAxqAtwMrszI8lUU278LYm74GzabPgK7yFEXd+z+8LLHLtg9WB83z3Ag==}
     engines: {node: '>=18'}
     dependencies:
       '@apogeelabs/beacon': 0.2.0
-      '@tanstack/react-query': 5.69.0(react@19.0.0)
+      '@tanstack/react-query': 5.69.0(react@19.2.3)
       mobx: 6.13.7
     transitivePeerDependencies:
       - react
@@ -2039,13 +2030,13 @@ packages:
     resolution: {integrity: sha512-Kn410jq6vs1P8Nm+ZsRj9H+U3C0kjuEkYLxbiCyn3MDEiYor1j2DGVULqAz62SLZtUZ/e9Xt6xMXiJ3NJ65WyQ==}
     dev: false
 
-  /@tanstack/react-query@5.69.0(react@19.0.0):
+  /@tanstack/react-query@5.69.0(react@19.2.3):
     resolution: {integrity: sha512-Ift3IUNQqTcaFa1AiIQ7WCb/PPy8aexZdq9pZWLXhfLcLxH0+PZqJ2xFImxCpdDZrFRZhLJrh76geevS5xjRhA==}
     peerDependencies:
       react: ^18 || ^19
     dependencies:
       '@tanstack/query-core': 5.69.0
-      react: 19.0.0
+      react: 19.2.3
     dev: false
 
   /@tsconfig/node10@1.0.11:
@@ -2151,29 +2142,18 @@ packages:
       undici-types: 6.19.8
     dev: true
 
-  /@types/prop-types@15.7.14:
-    resolution: {integrity: sha512-gNMvNH49DJ7OJYv+KAKn0Xp45p8PLl6zo2YnvDIbTd4J6MER2BmWN49TG7n9LvkyihINxeKW8+3bfS2yDC9dzQ==}
-    dev: true
-
-  /@types/react-dom@19.0.4(@types/react@19.0.11):
-    resolution: {integrity: sha512-4fSQ8vWFkg+TGhePfUzVmat3eC14TXYSsiiDSLI0dVLsrm9gZFABjPy/Qu6TKgl1tq1Bu1yDsuQgY3A3DOjCcg==}
+  /@types/react-dom@19.2.3(@types/react@19.2.7):
+    resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
-      '@types/react': ^19.0.0
+      '@types/react': ^19.2.0
     dependencies:
-      '@types/react': 19.0.11
+      '@types/react': 19.2.7
     dev: true
 
-  /@types/react@18.3.20:
-    resolution: {integrity: sha512-IPaCZN7PShZK/3t6Q87pfTkRm6oLTd4vztyoj+cbHUF1g3FfVb2tFIL79uCRKEfv16AhqDMBywP2VW3KIZUvcg==}
+  /@types/react@19.2.7:
+    resolution: {integrity: sha512-MWtvHrGZLFttgeEj28VXHxpmwYbor/ATPYbBfSFZEIRK0ecCFLl2Qo55z52Hss+UV9CRN7trSeq1zbgx7YDWWg==}
     dependencies:
-      '@types/prop-types': 15.7.14
-      csstype: 3.1.3
-    dev: true
-
-  /@types/react@19.0.11:
-    resolution: {integrity: sha512-vrdxRZfo9ALXth6yPfV16PYTLZwsUWhVjjC+DkfE5t1suNSbBrWC9YqSuuxJZ8Ps6z1o2ycRpIqzZJIgklq4Tw==}
-    dependencies:
-      csstype: 3.1.3
+      csstype: 3.2.3
 
   /@types/stack-utils@2.0.3:
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -2947,8 +2927,8 @@ packages:
       which: 2.0.2
     dev: true
 
-  /csstype@3.1.3:
-    resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
+  /csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
   /data-view-buffer@1.0.2:
     resolution: {integrity: sha512-EmKO5V3OLXh1rtK2wgXRansaK1/mtVdTUEiEI0W8RkvgT05kfxaH29PliLnpLP73yYO6142Q72QNa8Wx/A5CqQ==}
@@ -4853,6 +4833,7 @@ packages:
 
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
+    dev: true
 
   /js-yaml@3.14.1:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
@@ -4986,13 +4967,6 @@ packages:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
     dev: false
 
-  /loose-envify@1.4.0:
-    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
-    hasBin: true
-    dependencies:
-      js-tokens: 4.0.0
-    dev: false
-
   /lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
     dev: true
@@ -5086,7 +5060,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     dev: true
 
-  /mobx-react-lite@4.1.0(mobx@6.13.7)(react-dom@19.0.0)(react@19.0.0):
+  /mobx-react-lite@4.1.0(mobx@6.13.7)(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-QEP10dpHHBeQNv1pks3WnHRCem2Zp636lq54M2nKO2Sarr13pL4u6diQXf65yzXUn0mkk18SyIDCm9UOJYTi1w==}
     peerDependencies:
       mobx: ^6.9.0
@@ -5100,9 +5074,9 @@ packages:
         optional: true
     dependencies:
       mobx: 6.13.7
-      react: 19.0.0
-      react-dom: 19.0.0(react@19.0.0)
-      use-sync-external-store: 1.4.0(react@19.0.0)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      use-sync-external-store: 1.4.0(react@19.2.3)
     dev: false
 
   /mobx@6.13.7:
@@ -5475,20 +5449,20 @@ packages:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
     dev: true
 
-  /react-dom@19.0.0(react@19.0.0):
-    resolution: {integrity: sha512-4GV5sHFG0e/0AD4X+ySy6UJd3jVl1iNsNHdpad0qhABJ11twS3TTBnseqsKurKcsNqCEFeGL3uLpVChpIO3QfQ==}
+  /react-dom@19.2.3(react@19.2.3):
+    resolution: {integrity: sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==}
     peerDependencies:
-      react: ^19.0.0
+      react: ^19.2.3
     dependencies:
-      react: 19.0.0
-      scheduler: 0.25.0
+      react: 19.2.3
+      scheduler: 0.27.0
     dev: false
 
   /react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
     dev: true
 
-  /react-query@3.39.3(react@19.0.0):
+  /react-query@3.39.3(react@19.2.3):
     resolution: {integrity: sha512-nLfLz7GiohKTJDuT4us4X3h/8unOh+00MLb2yJoGTPjxKs2bc1iDhkNx2bd5MKklXnOD3NrVZ+J2UXujA5In4g==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
@@ -5503,7 +5477,7 @@ packages:
       '@babel/runtime': 7.26.10
       broadcast-channel: 3.7.0
       match-sorter: 6.3.4
-      react: 19.0.0
+      react: 19.2.3
     dev: false
 
   /react-refresh@0.14.2:
@@ -5511,19 +5485,19 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /react-router-dom@7.4.0(react-dom@19.0.0)(react@19.0.0):
+  /react-router-dom@7.4.0(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-VlksBPf3n2bijPvnA7nkTsXxMAKOj+bWp4R9c3i+bnwlSOFAGOkJkKhzy/OsRkWaBMICqcAl1JDzh9ZSOze9CA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       react: '>=18'
       react-dom: '>=18'
     dependencies:
-      react: 19.0.0
-      react-dom: 19.0.0(react@19.0.0)
-      react-router: 7.4.0(react-dom@19.0.0)(react@19.0.0)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      react-router: 7.4.0(react-dom@19.2.3)(react@19.2.3)
     dev: false
 
-  /react-router@7.4.0(react-dom@19.0.0)(react@19.0.0):
+  /react-router@7.4.0(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-Y2g5ObjkvX3VFeVt+0CIPuYd9PpgqCslG7ASSIdN73LwA1nNWzcMLaoMRJfP3prZFI92svxFwbn7XkLJ+UPQ6A==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
@@ -5535,21 +5509,14 @@ packages:
     dependencies:
       '@types/cookie': 0.6.0
       cookie: 1.0.2
-      react: 19.0.0
-      react-dom: 19.0.0(react@19.0.0)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
       set-cookie-parser: 2.7.1
       turbo-stream: 2.4.0
     dev: false
 
-  /react@18.3.1:
-    resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
-    dev: false
-
-  /react@19.0.0:
-    resolution: {integrity: sha512-V8AVnmPIICiWpGfm6GLzCR/W5FXLchHop40W4nXBmdlEceh16rCN8O8LNWm5bh5XUX91fh7KpA+W0TgMKmgTpQ==}
+  /react@19.2.3:
+    resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -5723,8 +5690,8 @@ packages:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
     dev: true
 
-  /scheduler@0.25.0:
-    resolution: {integrity: sha512-xFVuu11jh+xcO7JOAGJNOXld8/TcEHK/4CituBUeUb5hqxJLj9YuemAEuvm9gQ/+pgXYfbQuqAkiYu+u7YEsNA==}
+  /scheduler@0.27.0:
+    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
     dev: false
 
   /semver@6.3.1:
@@ -6486,12 +6453,12 @@ packages:
       punycode: 2.3.1
     dev: true
 
-  /use-sync-external-store@1.4.0(react@19.0.0):
+  /use-sync-external-store@1.4.0(react@19.2.3):
     resolution: {integrity: sha512-9WXSPC5fMv61vaupRkCKCxsPxBocVnwakBEkMIHHpkTTg6icbJtg6jzgtLDm4bl3cSHAca52rYWih0k4K3PfHw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
-      react: 19.0.0
+      react: 19.2.3
     dev: false
 
   /v8-compile-cache-lib@3.0.1:

@@ -1,6 +1,6 @@
 import { ActorAction } from "@apogeelabs/beacon-actorstore";
 import { todoMachine } from "./fsm";
-import { BeaconActions } from "@apogeelabs/beacon";
+import { BeaconActions, BeaconState, BeaconDerived } from "@apogeelabs/beacon";
 
 // Define the Todo type
 export interface Todo {
@@ -10,14 +10,16 @@ export interface Todo {
 }
 
 // Define the TodoList state
-export interface TodoListState {
+export interface TodoListState extends BeaconState {
     todos: Todo[];
     filter: "all" | "active" | "completed";
     isLoading: boolean;
     error: string | null;
 }
 
-export interface TodoStoreActions extends BeaconActions<TodoListState> {
+export interface TodoStoreActions
+    extends BeaconActions<TodoListState>,
+        Record<string, (...args: any[]) => any> {
     localSearch: (state: TodoListState, query: string) => Todo[];
 }
 
@@ -33,7 +35,7 @@ export type TodoActorActions = {
 };
 
 // Define derived state interface
-export interface TodoDerivedState extends Record<string, (state: TodoListState) => any> {
+export interface TodoDerivedState extends BeaconDerived<TodoListState> {
     activeTodos: (state: TodoListState) => Todo[];
     completedTodos: (state: TodoListState) => Todo[];
     filteredTodos: (state: TodoListState) => Todo[];

@@ -47,7 +47,7 @@
     },
     "dependencies": {
         "@apogeelabs/beacon": "workspace:*",
-        "@tanstack/react-query": "^5.69.0",
+        "@tanstack/react-query": "^5.90.12",
         "mobx": "^6.13.7"
     },
     "devDependencies": {

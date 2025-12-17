@@ -10,6 +10,7 @@ jest.mock("mobx", () => {
 
 const mockReact = {
     useEffect: jest.fn(),
+    useEffectEvent: jest.fn(fn => fn),
 };
 jest.mock("react", () => {
     return mockReact;
@@ -46,13 +47,11 @@ describe("useStoreWatcher", () => {
         });
 
         it("should useEffect to manage creating/disposing a mobX reaction", () => {
+            expect(mockReact.useEffectEvent).toHaveBeenCalledTimes(2); // Called for selector and onChange
+            expect(mockReact.useEffectEvent).toHaveBeenCalledWith(selector);
+            expect(mockReact.useEffectEvent).toHaveBeenCalledWith(onChange);
             expect(mockReact.useEffect).toHaveBeenCalledTimes(1);
-            expect(mockReact.useEffect).toHaveBeenCalledWith(expect.any(Function), [
-                store,
-                selector,
-                onChange,
-                false,
-            ]);
+            expect(mockReact.useEffect).toHaveBeenCalledWith(expect.any(Function), [store, false]);
         });
     });
 

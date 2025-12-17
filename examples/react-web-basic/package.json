@@ -1,7 +1,7 @@
 {
     "name": "beacon-react-web",
     "private": true,
-    "version": "0.0.0",
+    "version": "1.0.0",
     "type": "module",
     "scripts": {
         "dev": "vite",
@@ -9,19 +9,19 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@apogeelabs/beacon": "^0.2.0",
-        "@apogeelabs/beacon-browserstorage": "^0.2.0",
-        "@apogeelabs/beacon-reactquery": "^0.1.1",
+        "@apogeelabs/beacon": "^1.0.0",
+        "@apogeelabs/beacon-browserstorage": "^1.0.0",
+        "@apogeelabs/beacon-reactquery": "^1.0.0",
         "mobx": "^6.13.7",
         "mobx-react-lite": "^4.1.0",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3",
         "react-router-dom": "^7.4.0"
     },
     "devDependencies": {
         "@eslint/js": "^9.21.0",
-        "@types/react": "^19.0.10",
-        "@types/react-dom": "^19.0.4",
+        "@types/react": "^19.2.3",
+        "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react": "^4.3.4",
         "eslint": "^9.21.0",
         "eslint-plugin-react-hooks": "^5.1.0",

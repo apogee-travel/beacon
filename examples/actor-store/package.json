@@ -1,7 +1,7 @@
 {
     "name": "beacon-actor-store",
     "private": true,
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "",
     "main": "index.ts",
     "scripts": {
@@ -12,8 +12,8 @@
     "author": "Jim Cowart",
     "license": "ISC",
     "dependencies": {
-        "@apogeelabs/beacon": "^0.2.0",
-        "@apogeelabs/beacon-actorstore": "^0.2.0",
+        "@apogeelabs/beacon": "workspace:*",
+        "@apogeelabs/beacon-actorstore": "workspace:*",
         "mobx": "^6.13.7",
         "xstate": "^5.19.2"
     },

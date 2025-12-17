@@ -1,4 +1,4 @@
-# @apogeelabs/beacon-react-utils
+# beacon-react-web
 
 ## 1.0.0
 
@@ -9,16 +9,6 @@
 ### Patch Changes
 
 - Updated dependencies
+    - @apogeelabs/beacon-browserstorage@1.0.0
+    - @apogeelabs/beacon-reactquery@1.0.0
     - @apogeelabs/beacon@1.0.0
-
-## 0.2.0
-
-### Minor Changes
-
-- Change lodash import
-
-## 0.1.1
-
-### Patch Changes
-
-- First implementation of useStoreWatcher

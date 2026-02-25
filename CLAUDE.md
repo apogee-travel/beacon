@@ -20,16 +20,16 @@ examples/
 
 ## Tech Stack
 
-| Tool                  | Role                                                                   |
-| --------------------- | ---------------------------------------------------------------------- |
-| **MobX 6**            | Reactive state engine — `observable`, `computed`, `action`, `reaction` |
-| **TypeScript**        | `strict: true`, target `es2020`, module `esnext`                       |
-| **tsup**              | Builds each package to CJS + ESM with `.d.ts` declarations             |
-| **Jest + ts-jest**    | Unit testing, per-package `jest.config.js`                             |
-| **Turborepo**         | Task orchestration — `build`, `test`, `lint`, `dev` pipelines          |
-| **pnpm 8**            | Package manager with workspace support                                 |
-| **Changesets**        | Version management and npm publishing                                  |
-| **ESLint + Prettier** | Linting (root `.eslintrc.js`) and formatting                           |
+| Tool                  | Role                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| **MobX 6**            | Reactive state engine — `observable`, `computed`, `action`, `reaction`                        |
+| **TypeScript**        | `strict: true`, target `es2020`, module `esnext`                                              |
+| **tsdown**            | Builds each package to CJS + ESM with `.d.ts` declarations (Rolldown-based successor to tsup) |
+| **Jest + ts-jest**    | Unit testing, per-package `jest.config.js`                                                    |
+| **Turborepo**         | Task orchestration — `build`, `test`, `lint`, `dev` pipelines                                 |
+| **pnpm 8**            | Package manager with workspace support                                                        |
+| **Changesets**        | Version management and npm publishing                                                         |
+| **ESLint + Prettier** | Linting (root `.eslintrc.js`) and formatting                                                  |
 
 ## Common Commands
 

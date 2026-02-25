@@ -6,8 +6,8 @@ Beacon middleware that persists store state to `localStorage` or `sessionStorage
 
 ```typescript
 import {
-  browserStorageMiddleware,
-  type BrowserStorageOptions,
+    browserStorageMiddleware,
+    type BrowserStorageOptions,
 } from "@apogeelabs/beacon-browserstorage";
 ```
 
@@ -15,16 +15,16 @@ import {
 
 ```typescript
 interface BrowserStorageOptions {
-  /** Key used for storage.getItem / storage.setItem */
-  key: string;
-  /** "local" (default) or "session" */
-  storageType?: "local" | "session";
+    /** Key used for storage.getItem / storage.setItem */
+    key: string;
+    /** "local" (default) or "session" */
+    storageType?: "local" | "session";
 }
 
 function browserStorageMiddleware<
-  TState extends BeaconState,
-  _TDerived extends BeaconDerived<TState>,
-  _TActions extends BeaconActions<TState>,
+    TState extends BeaconState,
+    _TDerived extends BeaconDerived<TState>,
+    _TActions extends BeaconActions<TState>,
 >(options: BrowserStorageOptions): (config: StoreConfig) => StoreConfig;
 ```
 
@@ -37,19 +37,17 @@ import { createStore, compose } from "@apogeelabs/beacon";
 import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
 
 interface AppState {
-  theme: "light" | "dark";
-  sidebarOpen: boolean;
+    theme: "light" | "dark";
+    sidebarOpen: boolean;
 }
 
 const appStore = createStore<AppState>(
-  compose<AppState>(
-    browserStorageMiddleware({ key: "app-prefs" })
-  )({
-    initialState: {
-      theme: "light",
-      sidebarOpen: true,
-    },
-  })
+    compose<AppState>(browserStorageMiddleware({ key: "app-prefs" }))({
+        initialState: {
+            theme: "light",
+            sidebarOpen: true,
+        },
+    })
 );
 // On creation: loads JSON from localStorage["app-prefs"] and merges into initialState.
 // On every state change: writes getStateSnapshot() back to localStorage["app-prefs"].
@@ -59,11 +57,11 @@ const appStore = createStore<AppState>(
 
 ```typescript
 const sessionStore = createStore<SessionState>(
-  compose<SessionState>(
-    browserStorageMiddleware({ key: "session-data", storageType: "session" })
-  )({
-    initialState: { token: null, expiresAt: null },
-  })
+    compose<SessionState>(
+        browserStorageMiddleware({ key: "session-data", storageType: "session" })
+    )({
+        initialState: { token: null, expiresAt: null },
+    })
 );
 ```
 

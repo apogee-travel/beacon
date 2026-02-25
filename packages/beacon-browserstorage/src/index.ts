@@ -18,11 +18,11 @@ export function browserStorageMiddleware<
     TState extends BeaconState,
     _TDerived extends BeaconDerived<TState>,
     _TActions extends BeaconActions<TState>,
->(options: BrowserStorageOptions) {
+>(options: BrowserStorageOptions): (config: any) => any {
     const storageType = options.storageType || "local";
     const storage = storageType === "session" ? sessionStorage : localStorage;
 
-    return (config: any) => {
+    return (config: any): any => {
         // Load initial state from storage if available
         try {
             const saved = storage.getItem(options.key);

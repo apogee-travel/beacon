@@ -5,8 +5,8 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
-        "start": "pnpm run build && node dist/index.js",
-        "build": "tsup ./src/index.ts"
+        "start": "pnpm run build && node dist/index.cjs",
+        "build": "tsdown ./src/index.ts"
     },
     "keywords": [],
     "author": "Jim Cowart",

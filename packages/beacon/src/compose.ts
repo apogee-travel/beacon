@@ -23,7 +23,7 @@ export function compose<
     ...middlewares: ((
         config: StoreConfig<TState, TDerived, TActions>
     ) => StoreConfig<TState, TDerived, TActions>)[]
-) {
+): (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions> {
     return (
         config: StoreConfig<TState, TDerived, TActions>
     ): StoreConfig<TState, TDerived, TActions> => {

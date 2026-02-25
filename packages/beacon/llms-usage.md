@@ -6,19 +6,19 @@ MobX-powered reactive state management with structured stores, derived state, ac
 
 ```typescript
 import {
-  createStore,
-  compose,
-  // Types
-  type BeaconState,
-  type BeaconDerived,
-  type BeaconActions,
-  type Store,
-  type StoreConfig,
-  type ActionParameters,
-  type CleanupFunction,
-  type EmptyDerived,
-  type EmptyActions,
-  type MiddlewareFunction,
+    createStore,
+    compose,
+    // Types
+    type BeaconState,
+    type BeaconDerived,
+    type BeaconActions,
+    type Store,
+    type StoreConfig,
+    type ActionParameters,
+    type CleanupFunction,
+    type EmptyDerived,
+    type EmptyActions,
+    type MiddlewareFunction,
 } from "@apogeelabs/beacon";
 ```
 
@@ -31,8 +31,12 @@ type BeaconDerived<TState = BeaconState> = Record<string, (state: TState) => any
 type BeaconActions<TState = BeaconState> = Record<string, (state: TState, ...args: any[]) => any>;
 
 // Extracts action params minus the leading `state` param
-type ActionParameters<T extends (...args: any[]) => any> =
-  T extends (state: any, ...args: infer P) => any ? P : never;
+type ActionParameters<T extends (...args: any[]) => any> = T extends (
+    state: any,
+    ...args: infer P
+) => any
+    ? P
+    : never;
 
 type CleanupFunction = () => void;
 type EmptyDerived<_TState> = Record<string, never>;
@@ -40,54 +44,56 @@ type EmptyActions = Record<string, never>;
 
 // Store config
 interface StoreConfig<
-  TState extends BeaconState,
-  TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
-  TActions extends BeaconActions<TState> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 > {
-  initialState: TState;
-  derived?: TDerived;
-  actions?: {
-    [K in keyof TActions]: (
-      state: TState & { [K in keyof TDerived]: ReturnType<TDerived[K]> },
-      ...args: ActionParameters<TActions[K]>
-    ) => ReturnType<TActions[K]>;
-  };
-  onStoreCreated?: (store: Store<TState, TDerived, TActions>) => void;
+    initialState: TState;
+    derived?: TDerived;
+    actions?: {
+        [K in keyof TActions]: (
+            state: TState & { [K in keyof TDerived]: ReturnType<TDerived[K]> },
+            ...args: ActionParameters<TActions[K]>
+        ) => ReturnType<TActions[K]>;
+    };
+    onStoreCreated?: (store: Store<TState, TDerived, TActions>) => void;
 }
 
 // Store instance — state props + derived props are top-level
 type Store<
-  TState extends BeaconState,
-  TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
-  TActions extends BeaconActions<TState> = EmptyActions,
-> = TState
-  & { [K in keyof TDerived]: ReturnType<TDerived[K]> }
-  & {
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+> = TState & { [K in keyof TDerived]: ReturnType<TDerived[K]> } & {
     actions: {
-      [K in keyof TActions]: (...args: ActionParameters<TActions[K]>) => ReturnType<TActions[K]>;
+        [K in keyof TActions]: (...args: ActionParameters<TActions[K]>) => ReturnType<TActions[K]>;
     };
-    getStateSnapshot: (opt?: { withDerived?: boolean }) => TState & Partial<{ [K in keyof TDerived]: ReturnType<TDerived[K]> }>;
+    getStateSnapshot: (opt?: {
+        withDerived?: boolean;
+    }) => TState & Partial<{ [K in keyof TDerived]: ReturnType<TDerived[K]> }>;
     registerCleanup: (cleanupFn: CleanupFunction) => void;
     dispose: () => void;
     isDisposed: boolean;
-  };
+};
 
 // Middleware type helper
 type MiddlewareFunction<
-  TState extends BeaconState,
-  TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
-  TActions extends BeaconActions<TState> = EmptyActions,
-  TOptions = any,
-> = (options: TOptions) => (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>;
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+    TOptions = any,
+> = (
+    options: TOptions
+) => (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>;
 ```
 
 ## `createStore`
 
 ```typescript
 function createStore<
-  TState extends BeaconState,
-  TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
-  TActions extends BeaconActions<TState> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 >(config: StoreConfig<TState, TDerived, TActions>): Store<TState, TDerived, TActions>;
 ```
 
@@ -95,54 +101,54 @@ function createStore<
 
 ```typescript
 interface TodoState {
-  items: { id: string; text: string; done: boolean }[];
-  filter: "all" | "active" | "done";
+    items: { id: string; text: string; done: boolean }[];
+    filter: "all" | "active" | "done";
 }
 
 type TodoDerived = {
-  visibleItems: (state: TodoState) => TodoState["items"];
-  count: (state: TodoState) => number;
+    visibleItems: (state: TodoState) => TodoState["items"];
+    count: (state: TodoState) => number;
 };
 
 type TodoActions = {
-  addItem: (state: TodoState, text: string) => void;
-  toggle: (state: TodoState, id: string) => void;
+    addItem: (state: TodoState, text: string) => void;
+    toggle: (state: TodoState, id: string) => void;
 };
 
 const todoStore = createStore<TodoState, TodoDerived, TodoActions>({
-  initialState: {
-    items: [],
-    filter: "all",
-  },
-  derived: {
-    visibleItems: (state) => {
-      if (state.filter === "all") return state.items;
-      return state.items.filter((i) => (state.filter === "done" ? i.done : !i.done));
+    initialState: {
+        items: [],
+        filter: "all",
     },
-    count: (state) => state.items.length,
-  },
-  actions: {
-    addItem: (state, text) => {
-      state.items.push({ id: crypto.randomUUID(), text, done: false });
+    derived: {
+        visibleItems: state => {
+            if (state.filter === "all") return state.items;
+            return state.items.filter(i => (state.filter === "done" ? i.done : !i.done));
+        },
+        count: state => state.items.length,
     },
-    toggle: (state, id) => {
-      const item = state.items.find((i) => i.id === id);
-      if (item) item.done = !item.done;
+    actions: {
+        addItem: (state, text) => {
+            state.items.push({ id: crypto.randomUUID(), text, done: false });
+        },
+        toggle: (state, id) => {
+            const item = state.items.find(i => i.id === id);
+            if (item) item.done = !item.done;
+        },
     },
-  },
 });
 
 // State and derived values are top-level properties
-todoStore.filter;              // "all"
-todoStore.visibleItems;        // TodoState["items"]
-todoStore.count;               // number
+todoStore.filter; // "all"
+todoStore.visibleItems; // TodoState["items"]
+todoStore.count; // number
 
 // Actions are namespaced — no `state` param when calling
 todoStore.actions.addItem("Buy calzones");
 todoStore.actions.toggle("some-id");
 
 // Snapshots
-const snap = todoStore.getStateSnapshot();                    // state only
+const snap = todoStore.getStateSnapshot(); // state only
 const snapFull = todoStore.getStateSnapshot({ withDerived: true }); // state + derived
 ```
 
@@ -150,12 +156,14 @@ const snapFull = todoStore.getStateSnapshot({ withDerived: true }); // state + d
 
 ```typescript
 const store = createStore<MyState>({
-  initialState: { /* ... */ },
-  onStoreCreated: (store) => {
-    // Runs once after store creation. Useful for side effects.
-    // Middleware uses this hook heavily.
-    console.log("Store ready:", store.getStateSnapshot());
-  },
+    initialState: {
+        /* ... */
+    },
+    onStoreCreated: store => {
+        // Runs once after store creation. Useful for side effects.
+        // Middleware uses this hook heavily.
+        console.log("Store ready:", store.getStateSnapshot());
+    },
 });
 ```
 
@@ -163,11 +171,13 @@ const store = createStore<MyState>({
 
 ```typescript
 function compose<
-  TState extends BeaconState,
-  TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
-  TActions extends BeaconActions<TState> = EmptyActions,
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
 >(
-  ...middlewares: ((config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>)[]
+    ...middlewares: ((
+        config: StoreConfig<TState, TDerived, TActions>
+    ) => StoreConfig<TState, TDerived, TActions>)[]
 ): (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>;
 ```
 
@@ -177,13 +187,17 @@ Composes middleware left-to-right (first middleware runs first).
 import { compose, createStore } from "@apogeelabs/beacon";
 
 const store = createStore(
-  compose(
-    middlewareA,  // runs first
-    middlewareB,  // runs second
-  )({
-    initialState: { /* ... */ },
-    actions: { /* ... */ },
-  })
+    compose(
+        middlewareA, // runs first
+        middlewareB // runs second
+    )({
+        initialState: {
+            /* ... */
+        },
+        actions: {
+            /* ... */
+        },
+    })
 );
 ```
 
@@ -193,17 +207,17 @@ A middleware is a function that takes a `StoreConfig` and returns a modified `St
 
 ```typescript
 const timestampMiddleware = (config: StoreConfig<MyState, MyDerived, MyActions>) => {
-  const originalActions = config.actions || {};
-  const enhanced: typeof originalActions = {} as any;
+    const originalActions = config.actions || {};
+    const enhanced: typeof originalActions = {} as any;
 
-  for (const key in originalActions) {
-    enhanced[key] = (state: any, ...args: any[]) => {
-      console.log(`[${new Date().toISOString()}] ${key}`);
-      return originalActions[key](state, ...args);
-    };
-  }
+    for (const key in originalActions) {
+        enhanced[key] = (state: any, ...args: any[]) => {
+            console.log(`[${new Date().toISOString()}] ${key}`);
+            return originalActions[key](state, ...args);
+        };
+    }
 
-  return { ...config, actions: enhanced };
+    return { ...config, actions: enhanced };
 };
 ```
 
@@ -212,7 +226,7 @@ const timestampMiddleware = (config: StoreConfig<MyState, MyDerived, MyActions>)
 ```typescript
 // Register cleanup handlers (typically from middleware)
 store.registerCleanup(() => {
-  clearInterval(myInterval);
+    clearInterval(myInterval);
 });
 
 // Dispose the store — runs all cleanup fns, nulls state, no-ops actions

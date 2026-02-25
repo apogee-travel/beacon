@@ -70,7 +70,9 @@ export function withActorControl<
     TActions extends BeaconActions<TState>,
     TMachine extends AnyActorLogic,
     TActorActions extends Record<string, any> = Record<string, never>,
->(options: ActorControlledStoreOptions<TState, TMachine, TActorActions>) {
+>(
+    options: ActorControlledStoreOptions<TState, TMachine, TActorActions>
+): (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions> {
     const {
         actor,
         actorActions = {} as TActorActions,

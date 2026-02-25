@@ -12,15 +12,15 @@ import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
 
 ```typescript
 function useStoreWatcher<
-  TState extends BeaconState,
-  TDerived extends BeaconDerived<TState>,
-  TActions extends BeaconActions<TState>,
-  T,  // return type of the selector
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
+    T, // return type of the selector
 >(
-  store: Store<TState, TDerived, TActions>,
-  selector: (store: Store<TState, TDerived, TActions>) => T,
-  onChange: (value: T) => void,
-  fireImmediately?: boolean  // default: false
+    store: Store<TState, TDerived, TActions>,
+    selector: (store: Store<TState, TDerived, TActions>) => T,
+    onChange: (value: T) => void,
+    fireImmediately?: boolean // default: false
 ): void;
 ```
 
@@ -33,22 +33,22 @@ import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
 import { searchStore } from "./stores/searchStore";
 
 function useSearchSync() {
-  const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-  useStoreWatcher(
-    searchStore,
-    // selector: pick the slice of state you care about
-    (store) => ({
-      query: store.query,
-      page: store.page,
-    }),
-    // onChange: runs when the selected slice changes (deep comparison)
-    (params) => {
-      setSearchParams(params);
-    },
-    // fireImmediately: sync on mount, not just on subsequent changes
-    true
-  );
+    useStoreWatcher(
+        searchStore,
+        // selector: pick the slice of state you care about
+        store => ({
+            query: store.query,
+            page: store.page,
+        }),
+        // onChange: runs when the selected slice changes (deep comparison)
+        params => {
+            setSearchParams(params);
+        },
+        // fireImmediately: sync on mount, not just on subsequent changes
+        true
+    );
 }
 ```
 
@@ -56,11 +56,11 @@ function useSearchSync() {
 
 ```typescript
 useStoreWatcher(
-  cartStore,
-  (store) => store.totalPrice,  // derived value
-  (total) => {
-    analytics.track("cart_total_changed", { total });
-  }
+    cartStore,
+    store => store.totalPrice, // derived value
+    total => {
+        analytics.track("cart_total_changed", { total });
+    }
 );
 ```
 
@@ -68,9 +68,9 @@ useStoreWatcher(
 
 1. Wraps `selector` and `onChange` in `useEffectEvent` so inline functions don't cause re-subscriptions.
 2. Inside a `useEffect`, creates a MobX `reaction` that:
-   - Runs the selector through `toJS()` to strip observable wrappers
-   - Compares current and previous values using lodash `_.isEqual` (deep comparison)
-   - Calls `onChange` only when values actually differ
+    - Runs the selector through `toJS()` to strip observable wrappers
+    - Compares current and previous values using lodash `_.isEqual` (deep comparison)
+    - Calls `onChange` only when values actually differ
 3. Registers the reaction disposer with `store.registerCleanup()` for store-level teardown.
 4. Returns a useEffect cleanup function that also disposes the reaction on unmount.
 

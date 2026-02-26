@@ -17,6 +17,7 @@
         "release": "turbo run build && changeset publish"
     },
     "devDependencies": {
+        "@apogeelabs/the-agency": "0.4.0",
         "@changesets/cli": "^2.26.2",
         "@eslint/js": "^9.22.0",
         "@types/jest": "^29.5.5",
@@ -28,7 +29,7 @@
         "prettier": "^3.0.3",
         "ts-jest": "^29.1.1",
         "ts-node": "^10.9.1",
-        "tsup": "^7.2.0",
+        "tsdown": "^0.20.3",
         "turbo": "^1.10.14",
         "typescript": "^5.2.2"
     },

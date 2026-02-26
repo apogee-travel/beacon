@@ -1,0 +1,593 @@
+# Beacon: LLM Code Generation Reference
+
+Beacon is a reactive state management library built on MobX observables, using a middleware-composable store pattern with first-class TypeScript support.
+
+## Package Overview
+
+| Package | npm Name | Version | Status | Peer Dependencies |
+|---|---|---|---|---|
+| Core | `@apogeelabs/beacon` | 1.0.0 | Stable | `mobx ^6.13.7` |
+| Browser Storage | `@apogeelabs/beacon-browserstorage` | 1.0.0 | Stable | `@apogeelabs/beacon`, `mobx ^6.13.7` |
+| React Utils | `@apogeelabs/beacon-react-utils` | 1.0.0 | Stable | `@apogeelabs/beacon`, `mobx ^6.13.7`, `react ^19.2.3`, `lodash 4.17.16` |
+| React Query | `@apogeelabs/beacon-reactquery` | 1.0.0 | **Deprecated — Do NOT use** | — |
+| Actor Store | `@apogeelabs/beacon-actorstore` | 1.0.0 | **PoC/Experimental** | `@apogeelabs/beacon`, `mobx ^6.13.7`, `xstate ^5.19.2` |
+
+## Core API: `createStore`
+
+### Type Constraints
+
+```typescript
+// The base type constraints used across all Beacon APIs:
+type BeaconState = Record<string, any>;
+type BeaconDerived<TState = BeaconState> = Record<string, (state: TState) => any>;
+type BeaconActions<TState = BeaconState> = Record<string, (state: TState, ...args: any[]) => any>;
+type EmptyDerived<_TState> = Record<string, never>;
+type EmptyActions = Record<string, never>;
+type CleanupFunction = () => void;
+
+// Strips the first parameter (state) from action signatures for external callers:
+type ActionParameters<T extends (...args: any[]) => any> = T extends (
+    state: any,
+    ...args: infer P
+) => any
+    ? P
+    : never;
+```
+
+### `StoreConfig<TState, TDerived, TActions>`
+
+```typescript
+interface StoreConfig<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+> {
+    initialState: TState;
+
+    derived?: TDerived;
+    // Each derived fn receives the full observable store state and returns a computed value.
+
+    actions?: {
+        [K in keyof TActions]: (
+            state: TState & { [K in keyof TDerived]: ReturnType<TDerived[K]> },
+            ...args: ActionParameters<TActions[K]>
+        ) => ReturnType<TActions[K]>;
+    };
+    // Each action fn receives the observable store as first arg. Callers do NOT pass state.
+
+    onStoreCreated?: (store: Store<TState, TDerived, TActions>) => void;
+    // Called after store is fully constructed. Used by middleware for side-effect setup.
+}
+```
+
+### `Store<TState, TDerived, TActions>` (return type)
+
+```typescript
+type Store<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+> = TState
+    & { [K in keyof TDerived]: ReturnType<TDerived[K]> }
+    & {
+        actions: {
+            [K in keyof TActions]: (
+                ...args: ActionParameters<TActions[K]>
+            ) => ReturnType<TActions[K]>;
+        };
+        getStateSnapshot: (opt?: { withDerived?: boolean }) => TState &
+            Partial<{ [K in keyof TDerived]: ReturnType<TDerived[K]> }>;
+        registerCleanup: (cleanupFn: CleanupFunction) => void;
+        dispose: () => void;
+        isDisposed: boolean;
+    };
+```
+
+Key facts about the store instance:
+- State properties are directly on the store object (e.g., `store.count`, not `store.state.count`)
+- Derived values are also directly on the store object as getters
+- Actions are namespaced under `store.actions` (e.g., `store.actions.increment()`)
+- `getStateSnapshot()` returns plain JS (via MobX `toJS`), excludes derived by default
+- `getStateSnapshot({ withDerived: true })` includes derived values
+- `dispose()` cleans up all MobX artifacts, runs registered cleanup functions, makes actions no-op
+- After `dispose()`, actions warn and return without executing
+
+### Function Signature
+
+```typescript
+function createStore<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+>(config: StoreConfig<TState, TDerived, TActions>): Store<TState, TDerived, TActions>;
+```
+
+## Core API: `compose`
+
+Composes multiple middleware functions left-to-right. Each middleware receives and returns a `StoreConfig`.
+
+```typescript
+function compose<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+>(
+    ...middlewares: ((
+        config: StoreConfig<TState, TDerived, TActions>
+    ) => StoreConfig<TState, TDerived, TActions>)[]
+): (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>;
+```
+
+`compose` applies middleware in array order (left-to-right). The result is a single function that takes a `StoreConfig` and returns a transformed `StoreConfig`. You pass the composed result to `createStore`.
+
+## Middleware Pattern
+
+A middleware is a function that takes a `StoreConfig` and returns a modified `StoreConfig`. If the middleware needs options, it uses a factory pattern (function that returns the middleware function).
+
+### Type Helper
+
+```typescript
+type MiddlewareFunction<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+    TOptions = any,
+> = (
+    options: TOptions
+) => (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>;
+```
+
+### How middleware modifies config
+
+Middleware can:
+1. Modify `initialState` (e.g., merge in persisted values)
+2. Add/modify `derived` computations
+3. Add/modify/wrap `actions`
+4. Chain `onStoreCreated` — always call the original if it exists:
+
+```typescript
+function myMiddleware(options: MyOptions) {
+    return (config: StoreConfig<TState, TDerived, TActions>) => {
+        const originalOnStoreCreated = config.onStoreCreated;
+
+        return {
+            ...config,
+            onStoreCreated: (store) => {
+                // Do your setup here (subscriptions, defineProperty, etc.)
+
+                // Register cleanup for when store is disposed
+                store.registerCleanup(() => {
+                    // teardown logic
+                });
+
+                // ALWAYS call original if it exists
+                if (originalOnStoreCreated) {
+                    originalOnStoreCreated(store);
+                }
+            },
+        };
+    };
+}
+```
+
+## Browser Storage Middleware
+
+Package: `@apogeelabs/beacon-browserstorage`
+
+Persists store state to `localStorage` or `sessionStorage`. Hydrates on creation, auto-saves on every state change via MobX `reaction`.
+
+### API
+
+```typescript
+interface BrowserStorageOptions {
+    key: string;                          // Storage key
+    storageType?: "local" | "session";    // Default: "local"
+}
+
+function browserStorageMiddleware<
+    TState extends BeaconState,
+    _TDerived extends BeaconDerived<TState>,
+    _TActions extends BeaconActions<TState>,
+>(options: BrowserStorageOptions):
+    (config: any) => any;
+```
+
+### Behavior
+
+1. On config transform: reads `storage.getItem(key)`, parses JSON, merges into `config.initialState`
+2. In `onStoreCreated`: sets up a MobX `reaction` on `store.getStateSnapshot()` that calls `storage.setItem(key, JSON.stringify(snapshot))` on every state change
+3. If storage read fails, logs error and continues with original `initialState`
+
+## React Integration: `useStoreWatcher`
+
+Package: `@apogeelabs/beacon-react-utils`
+
+A React hook that sets up a MobX `reaction` to watch selected store values and trigger a callback on change. Uses `useEffectEvent` for stable callbacks (React 19+).
+
+### Full Signature
+
+```typescript
+function useStoreWatcher<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
+    T,
+>(
+    store: Store<TState, TDerived, TActions>,
+    selector: (store: Store<TState, TDerived, TActions>) => T,
+    onChange: (value: T) => void,
+    fireImmediately?: boolean  // default: false
+): void;
+```
+
+### Behavior
+
+- Creates a MobX `reaction` inside `useEffect`
+- The `selector` runs inside the reaction's tracking function (wrapped with `toJS` to strip observables)
+- The `onChange` callback fires when the selected value changes (deep-compared via `lodash.isEqual`)
+- Registers the reaction disposer with `store.registerCleanup()` for store disposal
+- Also cleans up on component unmount via the `useEffect` return
+- `selector` and `onChange` are wrapped with `useEffectEvent` — inline functions are safe, no stale closures
+
+## React Query Middleware — DEPRECATED
+
+⚠️ `@apogeelabs/beacon-reactquery` exists in the repo but is a fundamentally flawed approach. **Do NOT use it. Do not generate code using it. Do not suggest it.**
+
+## Actor Store (PoC/Experimental)
+
+Package: `@apogeelabs/beacon-actorstore`
+
+Bridges XState v5 actors with Beacon stores. The actor drives store state; regular Beacon actions are disabled by default (controlled by `allowRegularActions`).
+
+Exports: `withActorControl`, `createActorControlledStore`, `defineActorActions`, and related types (`ActorControlledStoreOptions`, `ActorControlledStore`, `ActorAction`, `ActorActionParameters`).
+
+Not covered in detail here due to experimental status. Refer to source at `packages/beacon-actorstore/src/index.ts`.
+
+## Canonical Examples
+
+### 1. Basic Store Creation and Usage
+
+```typescript
+import { createStore } from "@apogeelabs/beacon";
+
+// Define your types
+interface CounterState {
+    count: number;
+    label: string;
+}
+
+interface CounterDerived {
+    doubleCount: (state: CounterState) => number;
+    display: (state: CounterState) => string;
+}
+
+interface CounterActions {
+    increment: (state: CounterState) => void;
+    decrement: (state: CounterState) => void;
+    setCount: (state: CounterState, value: number) => void;
+}
+
+const counterStore = createStore<CounterState, CounterDerived, CounterActions>({
+    initialState: {
+        count: 0,
+        label: "Counter",
+    },
+    derived: {
+        doubleCount: (state) => state.count * 2,
+        display: (state) => `${state.label}: ${state.count}`,
+    },
+    actions: {
+        increment: (state) => { state.count += 1; },
+        decrement: (state) => { state.count -= 1; },
+        setCount: (state, value) => { state.count = value; },
+    },
+});
+
+// Reading state — directly on the store object
+console.log(counterStore.count);        // 0
+console.log(counterStore.doubleCount);  // 0
+console.log(counterStore.display);      // "Counter: 0"
+
+// Calling actions — namespaced under .actions
+counterStore.actions.increment();
+console.log(counterStore.count);        // 1
+counterStore.actions.setCount(42);
+console.log(counterStore.doubleCount);  // 84
+
+// Snapshots
+const snap = counterStore.getStateSnapshot();
+// { count: 42, label: "Counter" } — derived values excluded by default
+
+const snapWithDerived = counterStore.getStateSnapshot({ withDerived: true });
+// { count: 42, label: "Counter", doubleCount: 84, display: "Counter: 42" }
+
+// Cleanup
+counterStore.dispose();
+```
+
+### 2. Store with Browser Storage Middleware
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+interface SettingsState {
+    theme: "light" | "dark";
+    fontSize: number;
+}
+
+interface SettingsActions {
+    setTheme: (state: SettingsState, theme: "light" | "dark") => void;
+    setFontSize: (state: SettingsState, size: number) => void;
+}
+
+const config = {
+    initialState: {
+        theme: "light" as const,
+        fontSize: 14,
+    },
+    actions: {
+        setTheme: (state: SettingsState, theme: "light" | "dark") => { state.theme = theme; },
+        setFontSize: (state: SettingsState, size: number) => { state.fontSize = size; },
+    },
+};
+
+// Apply middleware by composing, then pass to createStore
+const settingsStore = createStore<SettingsState, Record<string, never>, SettingsActions>(
+    compose<SettingsState, Record<string, never>, SettingsActions>(
+        browserStorageMiddleware({ key: "app-settings", storageType: "local" }),
+    )(config)
+);
+
+// State is automatically hydrated from localStorage on creation.
+// Every state change is automatically persisted back.
+```
+
+### 3. React Component Using `useStoreWatcher`
+
+```typescript
+import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
+import { useState } from "react";
+
+function CounterDisplay({ counterStore }: { counterStore: typeof myCounterStore }) {
+    const [displayValue, setDisplayValue] = useState(counterStore.display);
+
+    // Watch a derived value — when it changes, update local React state
+    useStoreWatcher(
+        counterStore,
+        (store) => store.display,
+        (newDisplay) => setDisplayValue(newDisplay)
+    );
+
+    return <div>{displayValue}</div>;
+}
+
+function CounterControls({ counterStore }: { counterStore: typeof myCounterStore }) {
+    const [count, setCount] = useState(counterStore.count);
+
+    // Watch a state value and fire immediately to sync initial value
+    useStoreWatcher(
+        counterStore,
+        (store) => store.count,
+        (newCount) => setCount(newCount),
+        true // fireImmediately
+    );
+
+    return (
+        <div>
+            <span>{count}</span>
+            <button onClick={() => counterStore.actions.increment()}>+</button>
+            <button onClick={() => counterStore.actions.decrement()}>-</button>
+        </div>
+    );
+}
+```
+
+### 4. Middleware Composition with Multiple Middleware
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+// Custom logging middleware (factory pattern with options)
+function loggingMiddleware<TState extends Record<string, any>>(options: { prefix: string }) {
+    return (config: any) => {
+        const originalOnStoreCreated = config.onStoreCreated;
+
+        return {
+            ...config,
+            onStoreCreated: (store: any) => {
+                console.log(`${options.prefix} Store created`);
+
+                store.registerCleanup(() => {
+                    console.log(`${options.prefix} Store disposed`);
+                });
+
+                if (originalOnStoreCreated) {
+                    originalOnStoreCreated(store);
+                }
+            },
+        };
+    };
+}
+
+interface AppState {
+    user: string | null;
+    token: string | null;
+}
+
+interface AppActions {
+    login: (state: AppState, user: string, token: string) => void;
+    logout: (state: AppState) => void;
+}
+
+const config = {
+    initialState: { user: null as string | null, token: null as string | null },
+    actions: {
+        login: (state: AppState, user: string, token: string) => {
+            state.user = user;
+            state.token = token;
+        },
+        logout: (state: AppState) => {
+            state.user = null;
+            state.token = null;
+        },
+    },
+};
+
+// compose applies left-to-right: logging runs first, then storage
+const authStore = createStore<AppState, Record<string, never>, AppActions>(
+    compose<AppState, Record<string, never>, AppActions>(
+        loggingMiddleware({ prefix: "[Auth]" }),
+        browserStorageMiddleware({ key: "auth-state", storageType: "session" }),
+    )(config)
+);
+```
+
+## Common Mistakes / Do NOT Do This
+
+### Wrong: Accessing state through a `.state` property
+```typescript
+// WRONG
+store.state.count;
+
+// CORRECT — state is directly on the store
+store.count;
+```
+
+### Wrong: Calling actions directly on the store
+```typescript
+// WRONG
+store.increment();
+
+// CORRECT — actions are namespaced
+store.actions.increment();
+```
+
+### Wrong: Mutating state outside of actions
+```typescript
+// WRONG — will not be tracked by MobX properly
+store.count = 42;
+
+// CORRECT — always use actions
+store.actions.setCount(42);
+```
+
+### Wrong: Passing state to actions when calling them
+```typescript
+// WRONG — state is injected automatically
+store.actions.setCount(store, 42);
+
+// CORRECT — just pass the action's own parameters
+store.actions.setCount(42);
+```
+
+### Wrong: Using `compose` result directly as a store
+```typescript
+// WRONG — compose returns a config transformer, not a store
+const store = compose(middleware1, middleware2)(config);
+
+// CORRECT — pass the composed config to createStore
+const store = createStore(compose(middleware1, middleware2)(config));
+```
+
+### Wrong: Middleware not chaining `onStoreCreated`
+```typescript
+// WRONG — overwrites any previously registered onStoreCreated
+return { ...config, onStoreCreated: (store) => { /* my setup */ } };
+
+// CORRECT — always call the original
+const originalOnStoreCreated = config.onStoreCreated;
+return {
+    ...config,
+    onStoreCreated: (store) => {
+        /* my setup */
+        if (originalOnStoreCreated) originalOnStoreCreated(store);
+    },
+};
+```
+
+### Wrong: Forgetting that `getStateSnapshot()` excludes derived values by default
+```typescript
+// This will NOT have derived properties
+const snap = store.getStateSnapshot();
+
+// Use this if you need derived values in the snapshot
+const snap = store.getStateSnapshot({ withDerived: true });
+```
+
+### Wrong: Using the store after disposal
+```typescript
+// After dispose(), actions become no-ops that log warnings.
+// getStateSnapshot() returns null.
+store.dispose();
+store.actions.increment(); // warns, does nothing
+```
+
+### Wrong: Import paths with submodules
+```typescript
+// WRONG — there are no deep import paths
+import { createStore } from "@apogeelabs/beacon/store";
+import { compose } from "@apogeelabs/beacon/compose";
+
+// CORRECT — everything comes from the package root
+import { createStore, compose } from "@apogeelabs/beacon";
+```
+
+## Import Reference
+
+Every valid import path in the Beacon ecosystem:
+
+```typescript
+// Core — createStore, compose, and all types
+import {
+    createStore,
+    compose,
+    // Types
+    BeaconState,
+    BeaconDerived,
+    BeaconActions,
+    EmptyDerived,
+    EmptyActions,
+    Store,
+    StoreConfig,
+    ActionParameters,
+    CleanupFunction,
+    MiddlewareFunction,
+} from "@apogeelabs/beacon";
+
+// Browser Storage
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+import type { BrowserStorageOptions } from "@apogeelabs/beacon-browserstorage";
+
+// React Utils
+import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
+
+// React Query — DEPRECATED, do not use
+// import from "@apogeelabs/beacon-reactquery" — DO NOT IMPORT
+
+// Actor Store (Experimental, in development)
+import {
+    withActorControl,
+    createActorControlledStore,
+    defineActorActions,
+} from "@apogeelabs/beacon-actorstore";
+import type {
+    ActorControlledStoreOptions,
+    ActorControlledStore,
+    ActorAction,
+    ActorActionParameters,
+} from "@apogeelabs/beacon-actorstore";
+```
+
+There are NO deep import paths. All packages export exclusively from their root entry point.
+
+## Established Usage Patterns
+
+From the project's `Patterns.md`:
+- Mutable and derived state in stores remove the vast majority of selectors/memoization in components
+- Actions are the **only** way to mutate state
+- Stores can reference other stores when needed (though the need should be well-justified)
+- Stores do **not** make API calls directly
+- Stores are exposed through a central root store and root store context
+- API-to-store bridging is handled through intermediary modules/hooks or middleware

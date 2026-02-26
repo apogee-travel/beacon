@@ -8,7 +8,7 @@ The monorepo utilizes several tools:
 
 1. **pnpm** - Package management with workspace support
 2. **Turborepo** - Monorepo task runner with caching
-3. **tsup** - TypeScript build tool
+3. **tsdown** - TypeScript build tool (Rolldown-based successor to tsup)
 4. **Jest** - Testing framework
 5. **ESLint** - Linting
 6. **Prettier** - Code formatting
@@ -18,7 +18,7 @@ The monorepo utilizes several tools:
 
 - **TypeScript**: Configuration in `tsconfig.json`
 - **Turborepo**: Pipeline configuration in `turbo.json`
-- **tsup**: Build configuration in `tsup.config.ts`
+- **tsdown**: Build configuration in `tsdown.config.ts`
 - **Jest**: Test configuration typically in each package's `jest.config.js`
 
 ## Prerequisites
@@ -91,7 +91,7 @@ Build all packages:
 pnpm build
 ```
 
-This uses [tsup](https://github.com/egoist/tsup) to build the TypeScript packages into CommonJS and ESM formats with declaration files.
+This uses [tsdown](https://github.com/rolldown/tsdown) to build the TypeScript packages into CommonJS and ESM formats with declaration files.
 
 ### Testing
 

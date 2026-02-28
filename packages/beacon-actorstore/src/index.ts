@@ -198,6 +198,9 @@ export function withActorControl<
                 },
             });
 
+            // Register unsubscribe so the actor subscription is torn down when the store is disposed.
+            store.registerCleanup(() => subscription.unsubscribe());
+
             // Call the original onStoreCreated if it exists
             if (config.onStoreCreated) {
                 config.onStoreCreated(store);
@@ -206,9 +209,6 @@ export function withActorControl<
             if (autoStartActor) {
                 (actor as any).start();
             }
-
-            // Return unsubscribe function (could be used for cleanup in future versions)
-            return subscription.unsubscribe;
         };
 
         return {

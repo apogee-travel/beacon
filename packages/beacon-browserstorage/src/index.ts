@@ -42,14 +42,16 @@ export function browserStorageMiddleware<
                 originalOnStoreCreated(store);
             }
 
-            // Save to storage whenever state changes
-            reaction(
+            // Save to storage whenever state changes.
+            // Capture the disposer so we can stop the reaction when the store is disposed.
+            const disposer = reaction(
                 () => store.getStateSnapshot(),
                 () => {
                     const snapshot = store.getStateSnapshot();
                     storage.setItem(options.key, JSON.stringify(snapshot));
                 }
             );
+            store.registerCleanup(disposer);
         };
 
         return config;

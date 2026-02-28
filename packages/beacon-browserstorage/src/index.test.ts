@@ -32,6 +32,7 @@ describe("beacon-browserstorage", () => {
         (global as any).sessionStorage = sessionStg;
         mockStoreInstance = {
             getStateSnapshot: jest.fn(() => ({ testKey: "origTestValue" })),
+            registerCleanup: jest.fn(),
         };
     });
 
@@ -119,6 +120,62 @@ describe("beacon-browserstorage", () => {
                     err
                 );
             });
+        });
+    });
+
+    describe("when the store is disposed after middleware setup", () => {
+        let mockDisposer: jest.Mock, mockRegisterCleanup: jest.Mock;
+
+        beforeEach(async () => {
+            mockDisposer = jest.fn();
+            mockRegisterCleanup = jest.fn();
+            // Return a disposer from reaction so registerCleanup can receive it
+            mockReaction.mockImplementation((_selector: any, _onChange: any) => mockDisposer);
+
+            mockStoreInstance.registerCleanup = mockRegisterCleanup;
+
+            const options = { key: "spaceStation", storageType: "local" };
+            origCfg = { initialState: { dockingPort: "A7" } };
+
+            const mod = await import("./index");
+            const { browserStorageMiddleware } = mod;
+            storeCfg = browserStorageMiddleware(options as any)(origCfg);
+            storeCfg.onStoreCreated(mockStoreInstance);
+        });
+
+        it("should register the reaction disposer with the store", () => {
+            expect(mockRegisterCleanup).toHaveBeenCalledTimes(1);
+            expect(mockRegisterCleanup).toHaveBeenCalledWith(mockDisposer);
+        });
+    });
+
+    describe("when storageType is not specified", () => {
+        beforeEach(async () => {
+            origCfg = { initialState: { warpCore: "nominal" } };
+            const mod = await import("./index");
+            const { browserStorageMiddleware } = mod;
+            storeCfg = browserStorageMiddleware({ key: "enterprise" } as any)(origCfg);
+            storeCfg.onStoreCreated(mockStoreInstance);
+        });
+
+        it("should default to reading from localStorage", () => {
+            expect(localStg.getItem).toHaveBeenCalledWith("enterprise");
+        });
+    });
+
+    describe("when localStorage has no saved state for the key", () => {
+        beforeEach(async () => {
+            localStg.getItem.mockReset();
+            localStg.getItem.mockReturnValue(null);
+            origCfg = { initialState: { warpCore: "offline" } };
+            const mod = await import("./index");
+            const { browserStorageMiddleware } = mod;
+            storeCfg = browserStorageMiddleware({ key: "noSavedData", storageType: "local" } as any)(origCfg);
+            storeCfg.onStoreCreated(mockStoreInstance);
+        });
+
+        it("should not overwrite the initial state", () => {
+            expect(storeCfg.initialState).toEqual({ warpCore: "offline" });
         });
     });
 

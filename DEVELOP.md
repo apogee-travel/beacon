@@ -40,7 +40,6 @@ beacon-monorepo/
 │   ├── beacon-actorstore/      # Experimental PoC
 │   ├── beacon-browserstorage/
 │   └── beacon-react-utils/
-│   ├── beacon-reactquery/      # Experimental PoC
 ├── examples/                   # Example applications
 │   ├── actor-store/
 │   └── react-web-basic/

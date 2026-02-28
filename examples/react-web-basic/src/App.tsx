@@ -32,12 +32,6 @@ function App() {
                     >
                         Basic Example
                     </NavLink>
-                    <NavLink
-                        to="/reactquery"
-                        className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                    >
-                        React Query
-                    </NavLink>
                 </nav>
             </header>
 

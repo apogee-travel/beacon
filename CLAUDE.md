@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Beacon is a MobX-based state management library built around composable middleware. The monorepo publishes several `@apogeelabs/*` packages: a core store (`beacon`), browser storage persistence (`beacon-browserstorage`), React utilities (`beacon-react-utils`), and two experimental PoC packages (`beacon-reactquery`, `beacon-actorstore`). See `DEVELOP.md` for full setup and workflow docs.
+Beacon is a MobX-based state management library built around composable middleware. The monorepo publishes several `@apogeelabs/*` packages: a core store (`beacon`), browser storage persistence (`beacon-browserstorage`), React utilities (`beacon-react-utils`), and an experimental PoC package (`beacon-actorstore`). See `DEVELOP.md` for full setup and workflow docs.
 
 ## Monorepo Layout
 
@@ -10,8 +10,7 @@ Beacon is a MobX-based state management library built around composable middlewa
 packages/
   beacon/                  # Core: createStore, compose, types
   beacon-browserstorage/   # Middleware: localStorage/sessionStorage persistence
-  beacon-react-utils/      # React hook: useStoreWatcher
-  beacon-reactquery/       # PoC: TanStack React Query integration
+  beacon-react-utils/      # React hooks: useStoreWatcher, useStoreState
   beacon-actorstore/       # PoC: xstate actor model extension
 examples/
   react-web-basic/         # Vite React example app
@@ -52,7 +51,6 @@ Per-package: `cd packages/<name>` then `pnpm test`, `pnpm test:watch`, `pnpm bui
 ```
 beacon-react-utils  ──> beacon
 beacon-browserstorage ──> beacon
-beacon-reactquery ──> beacon, @tanstack/react-query
 beacon-actorstore ──> beacon, xstate
 ```
 
@@ -141,8 +139,7 @@ Stores support a cleanup lifecycle: middleware registers cleanup functions via `
 | ----------------------- | ---------------- | ----------------------------------------------------------------------------------------- |
 | `beacon`                | **Stable**       | Core library, v1.0.0                                                                      |
 | `beacon-browserstorage` | **Stable**       | localStorage/sessionStorage middleware, v1.0.0                                            |
-| `beacon-react-utils`    | **Stable**       | `useStoreWatcher` hook, v1.0.0                                                            |
-| `beacon-reactquery`     | **Deprecated**   | Fundamentally flawed approach — do not use, do not modify, do not reference               |
+| `beacon-react-utils`    | **Stable**       | `useStoreWatcher` and `useStoreState` hooks, v1.0.0                                       |
 | `beacon-actorstore`     | **Experimental** | xstate actor model — in active development and use. Do not modify unless explicitly asked |
 
 ## Release Process

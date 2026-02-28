@@ -12,7 +12,7 @@ Beacon wraps MobX with a thin store-creation interface that enforces consistent 
 |---------|-----|-------------|
 | `packages/beacon` | `@apogeelabs/beacon` | Core library — store creation, middleware composition, MobX abstraction |
 | `packages/beacon-browserstorage` | `@apogeelabs/beacon-browserstorage` | Middleware for persisting/hydrating store state to localStorage or sessionStorage |
-| `packages/beacon-react-utils` | `@apogeelabs/beacon-react-utils` | React hooks for observing and interacting with Beacon stores |
+| `packages/beacon-react-utils` | `@apogeelabs/beacon-react-utils` | React hooks (`useStoreWatcher`, `useStoreState`) for observing and interacting with Beacon stores |
 
 ### Experimental (In Development)
 
@@ -20,18 +20,13 @@ Beacon wraps MobX with a thin store-creation interface that enforces consistent 
 |---------|-----|-------------|
 | `packages/beacon-actorstore` | `@apogeelabs/beacon-actorstore` | XState v5 actor model integration for Beacon stores |
 
-### Deprecated — Do Not Use
-
-| Package | npm | Reason |
-|---------|-----|--------|
-| `packages/beacon-reactquery` | `@apogeelabs/beacon-reactquery` | Fundamentally flawed approach. Do not use, do not reference, do not generate code for this package. |
-
 ## Documentation
 
 | File | Purpose |
 |------|---------|
 | `ReadMe.LLM` | Complete API reference and code generation guide |
 | `Patterns.md` | Established usage patterns |
+| `RECIPES.md` | Integration patterns (e.g., Beacon + React Query bridge) |
 | `DEVELOP.md` | Development and contribution guide |
 | `CLAUDE.md` | AI agent instructions for working on this repo |
 | `packages/*/README.md` | Per-package READMEs |

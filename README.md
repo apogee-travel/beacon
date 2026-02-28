@@ -159,6 +159,10 @@ export const todoStore = createStore<
 );
 ```
 
+## Recipes
+
+See [RECIPES.md](./RECIPES.md) for integration patterns, including how to bridge Beacon stores with React Query (TanStack Query).
+
 ## Developing Beacon
 
 See the [DEVELOP readme](./DEVELOP.md) for information on how to develop within this repo.

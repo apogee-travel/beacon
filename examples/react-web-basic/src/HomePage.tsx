@@ -24,19 +24,6 @@ function HomePage() {
                         View Basic Example
                     </Link>
                 </div>
-
-                <div className="example-card">
-                    <h2>React Query Integration</h2>
-                    <p>
-                        Example implementation showing how beacon can integrate with react-query via
-                        middleware - allowing beacon to be used as the observable UI state, while
-                        react-query is used as the smart data-fetching/caching layer for API calls,
-                        etc..
-                    </p>
-                    <Link to="/reactquery" className="example-link">
-                        View React Query Example
-                    </Link>
-                </div>
             </div>
         </div>
     );

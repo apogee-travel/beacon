@@ -19,6 +19,7 @@ describe("beacon-browserstorage", () => {
         mockReaction.mockImplementation((selector, onChange) => {
             selector();
             onChange();
+            return jest.fn();
         });
         localStg = {
             getItem: jest.fn().mockReturnValue(JSON.stringify({ testKey: "storedTestValue" })),

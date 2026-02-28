@@ -144,6 +144,7 @@ export function withActorControl<
 
             // Function to update store state from actor snapshot
             const updateStoreFromSnapshot = (snapshot: SnapshotFrom<TMachine>) => {
+                if (store.isDisposed) return;
                 try {
                     let stateUpdates: Partial<TState>;
 

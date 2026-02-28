@@ -1,16 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable import/no-anonymous-default-export */
+export default {};
 
 const mockMobx = {
     computed: jest.fn(),
     observable: jest.fn(),
     action: jest.fn(),
     toJS: jest.fn(),
+    isObservable: jest.fn(),
+    runInAction: jest.fn(),
 };
 jest.mock("mobx", () => {
     return mockMobx;
 });
 
-describe.skip("store", () => {
+describe("store", () => {
     let storeModule: { createStore: any }, storeInstance: any, config: any;
 
     beforeEach(async () => {
@@ -22,6 +26,8 @@ describe.skip("store", () => {
         mockMobx.toJS.mockImplementation(val => {
             return JSON.parse(JSON.stringify(val));
         });
+        mockMobx.isObservable.mockReturnValue(false);
+        mockMobx.runInAction.mockImplementation((fn: any) => fn());
         storeModule = await import("./store");
     });
 
@@ -43,6 +49,8 @@ describe.skip("store", () => {
                 actions: {},
                 foo: "bar",
                 getStateSnapshot: expect.any(Function),
+                registerCleanup: expect.any(Function),
+                dispose: expect.any(Function),
             });
         });
     });
@@ -120,7 +128,7 @@ describe.skip("store", () => {
             storeInstance.actions.setFoo("baz");
         });
 
-        it.only("should create action functions that modify state", () => {
+        it("should create action functions that modify state", () => {
             expect(mockMobx.action).toHaveBeenCalledWith("setFoo", expect.any(Function));
             expect(storeInstance.foo).toEqual("baz");
         });

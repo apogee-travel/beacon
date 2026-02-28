@@ -158,7 +158,7 @@ export function createStore<
 
         runInAction(() => {
             // Clean up state properties - simple approach intended to let garbage collection handle most cleanup
-            for (const key in initialStateKeys) {
+            for (const key of initialStateKeys) {
                 try {
                     const value = (store as any)[key];
                     // Clear arrays if possible

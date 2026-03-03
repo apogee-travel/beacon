@@ -10,10 +10,19 @@ import {
 } from "./types";
 
 /**
- * Helper function to compose multiple middleware functions together
+ * Composes multiple middleware transformers into a single config transformer.
  *
- * @param middlewares Array of middleware functions to compose
- * @returns A function that applies all middleware in sequence
+ * Middlewares are applied left-to-right: the first argument in the list processes
+ * the config first, and each subsequent middleware receives the output of the previous one.
+ * Returns a function that accepts a StoreConfig and produces the fully-transformed StoreConfig,
+ * ready to pass to `createStore`.
+ *
+ * @example
+ * const config = compose(withStorage(storageOpts), withLogger(loggerOpts))(baseConfig);
+ * const store = createStore(config);
+ *
+ * @param middlewares Pre-applied middleware functions, i.e. the inner `(config) => StoreConfig`
+ *   returned after calling each middleware factory with its options.
  */
 export function compose<
     TState extends BeaconState,
@@ -27,6 +36,8 @@ export function compose<
     return (
         config: StoreConfig<TState, TDerived, TActions>
     ): StoreConfig<TState, TDerived, TActions> => {
+        // Each middleware receives the config produced by the previous one,
+        // forming a left-to-right transformation pipeline.
         return middlewares.reduce((acc, middleware) => middleware(acc), config);
     };
 }

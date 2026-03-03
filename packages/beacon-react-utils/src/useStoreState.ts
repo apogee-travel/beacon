@@ -31,8 +31,10 @@ export function useStoreState<
     store: Store<TState, TDerived, TActions>,
     selector: (store: Store<TState, TDerived, TActions>) => T,
 ): T {
+    // Initializer function so the selector only runs once on mount, not on every render
     const [value, setValue] = useState<T>(() => toJS(selector(store)));
 
+    // Wires MobX reactivity to React state — store changes call setValue, triggering a re-render
     useStoreWatcher(store, selector, setValue);
 
     return value;

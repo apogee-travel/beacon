@@ -33,14 +33,14 @@ export function useStoreWatcher<
     const stableOnChange = useEffectEvent(onChange);
 
     useEffect(() => {
-        // Set up a MobX reaction to watch the selected state
         const disposer = reaction(
             () => {
-                // Convert to plain JS to strip MobX observable properties
+                // toJS strips MobX observable wrappers so React sees plain values
                 return toJS(stableSelector(store));
             },
             (value, previousValue) => {
-                // Only trigger if the value actually changed using deep comparison
+                // MobX selectors can return new object references even when the underlying
+                // data hasn't changed. Deep comparison prevents spurious re-renders.
                 if (!previousValue || !_.isEqual(value, previousValue)) {
                     stableOnChange(value);
                 }
@@ -48,15 +48,16 @@ export function useStoreWatcher<
             { fireImmediately }
         );
 
-        // Register the disposer with the store for cleanup
+        // If the store is disposed externally, clean up the reaction too
         store.registerCleanup(() => {
             disposer();
         });
 
-        // Cleanup when the component unmounts or dependencies change
         return () => {
             disposer();
         };
+        // stableSelector and stableOnChange are omitted from deps intentionally —
+        // useEffectEvent keeps them stable across renders without needing to re-run the effect
     }, [store, fireImmediately]);
 }
 

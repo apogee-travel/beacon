@@ -1,0 +1,104 @@
+---
+title: useStoreState
+description: Subscribe to a Beacon store value as React state.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+```typescript
+import { useStoreState } from "@apogeelabs/beacon-react-utils";
+```
+
+`useStoreState` subscribes to a selected slice of a Beacon store and returns it as React state. When the selected value changes in the store, the component re-renders with the new value.
+
+## When to Use This
+
+Use `useStoreState` when you need a store value to participate in React's state lifecycle — specifically:
+
+- Driving React Query parameters (query keys that trigger refetches)
+- Passing values to hooks that don't understand MobX observables
+- Feeding non-`observer` child components
+
+<Aside type="tip">
+For normal component rendering, prefer wrapping your component with `observer` from `mobx-react-lite` and reading store values directly. That's simpler and more performant. `useStoreState` exists for the cases where `observer` isn't enough.
+</Aside>
+
+## Signature
+
+```typescript
+function useStoreState<TState, TDerived, TActions, T>(
+    store: Store<TState, TDerived, TActions>,
+    selector: (store: Store<TState, TDerived, TActions>) => T,
+): T
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `store` | `Store<TState, TDerived, TActions>` | The Beacon store instance |
+| `selector` | `(store) => T` | Function that extracts the value to track |
+
+## Return Value
+
+Returns the current value of the selected store slice (`T`). Updates automatically when the selected value changes.
+
+## How It Works
+
+Under the hood, `useStoreState` is a thin wrapper around [`useStoreWatcher`](/react/use-store-watcher/):
+
+1. Initializes React state with `useState(() => toJS(selector(store)))` — the selector runs once on mount
+2. Calls `useStoreWatcher(store, selector, setValue)` — wires MobX reactivity to `setState`
+3. When the store value changes, `setValue` is called, triggering a re-render
+
+The `toJS` call strips MobX observable wrappers so React sees plain values.
+
+## Example
+
+```typescript
+import { useStoreState } from "@apogeelabs/beacon-react-utils";
+import { useQuery } from "@tanstack/react-query";
+
+function useSearchBridge(store: SearchStore) {
+    // Convert MobX observable to React state
+    // When store.searchParams changes, this value updates,
+    // which changes the query key, which triggers a refetch
+    const searchParams = useStoreState(store, (s) => s.searchParams);
+
+    const { data, isLoading } = useQuery({
+        queryKey: ["search", searchParams],
+        queryFn: () => fetchResults(searchParams),
+    });
+
+    // Push results back to store
+    useEffect(() => {
+        if (data) store.actions.setResults(data);
+    }, [data]);
+
+    useEffect(() => {
+        store.actions.setLoading(isLoading);
+    }, [isLoading]);
+}
+```
+
+## Selector Tips
+
+**Keep selectors focused.** Return only what you need — the narrower the selection, the fewer re-renders:
+
+```typescript
+// Good — only re-renders when searchTerm changes
+const searchTerm = useStoreState(store, (s) => s.searchTerm);
+
+// Less good — re-renders when any state property changes
+const everything = useStoreState(store, (s) => s);
+```
+
+**Returning objects is fine.** The hook uses deep comparison internally, so a selector that returns `{ name, email }` won't cause spurious re-renders if the values haven't actually changed.
+
+```typescript
+// This works correctly — deep comparison prevents unnecessary re-renders
+const userInfo = useStoreState(store, (s) => ({
+    name: s.name,
+    email: s.email,
+}));
+```

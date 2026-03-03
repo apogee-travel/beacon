@@ -1,0 +1,153 @@
+---
+title: Actions
+description: How actions work and why state mutations go through them.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Actions are the only way to modify store state in Beacon. They're defined in the `actions` section of your store config and are automatically wrapped in MobX `action()`, which batches all mutations into a single transaction.
+
+## Defining Actions
+
+```typescript
+const store = createStore({
+    initialState: {
+        items: [],
+        isLoading: false,
+    },
+    actions: {
+        addItem: (state, name: string, price: number) => {
+            state.items.push({ name, price });
+        },
+        removeItem: (state, index: number) => {
+            state.items.splice(index, 1);
+        },
+        setLoading: (state, loading: boolean) => {
+            state.isLoading = loading;
+        },
+        clear: (state) => {
+            state.items.length = 0;
+            state.isLoading = false;
+        },
+    },
+});
+```
+
+Every action function receives the observable state as its first argument. Any additional parameters you define are what callers provide:
+
+```typescript
+// The (state) parameter is injected — callers only pass the rest
+store.actions.addItem("Widget", 9.99);
+store.actions.removeItem(0);
+store.actions.setLoading(true);
+store.actions.clear();
+```
+
+## Why Actions?
+
+MobX doesn't technically *require* actions — you can mutate observables directly. Beacon enforces them because:
+
+1. **Transaction batching**: All mutations inside an action happen in a single MobX transaction. If an action updates three properties, observers see one atomic change, not three intermediate states.
+
+2. **Traceability**: When every state change goes through a named action, debugging is straightforward. You know *what* changed and *why* — it's right there in the action name and arguments.
+
+3. **Disposed store guards**: Beacon wraps each action with a check that prevents execution after `store.dispose()`. Direct mutations would bypass this safety net.
+
+## Actions Can Access Derived Values
+
+The `state` parameter passed to an action includes both state properties and derived values:
+
+```typescript
+const store = createStore({
+    initialState: {
+        cart: [],
+        discountPercent: 10,
+    },
+    derived: {
+        subtotal: (state) =>
+            state.cart.reduce((sum, item) => sum + item.price, 0),
+    },
+    actions: {
+        checkout: (state) => {
+            const discount = state.subtotal * (state.discountPercent / 100);
+            console.log(`Charging: $${state.subtotal - discount}`);
+            state.cart.length = 0;
+        },
+    },
+});
+```
+
+## Actions Can Return Values
+
+Actions aren't limited to `void` — they can return values:
+
+```typescript
+const store = createStore({
+    initialState: { users: [] },
+    actions: {
+        addUser: (state, name: string) => {
+            const id = `user-${Date.now()}`;
+            state.users.push({ id, name });
+            return id; // caller gets the new user's ID
+        },
+    },
+});
+
+const newId = store.actions.addUser("Jim");
+```
+
+## Actions After Disposal
+
+Once a store is disposed, all actions become no-ops that log a warning:
+
+```typescript
+store.dispose();
+store.actions.addItem("Widget", 9.99);
+// Console: "Cannot execute action 'addItem': store has been disposed"
+```
+
+This prevents accidental mutations on stores that have already been cleaned up — a common source of bugs in component teardown scenarios.
+
+## Keep Actions Synchronous
+
+<Aside type="caution">
+Actions should be synchronous state mutations. Don't put `async/await`, `fetch`, or other I/O inside actions. That logic belongs in bridge hooks, middleware, or external modules that call actions with the results.
+</Aside>
+
+This isn't a technical limitation — MobX `action()` wrapping doesn't extend across `await` boundaries, so mutations after an `await` aren't batched. More importantly, it keeps your stores predictable: actions are pure state transitions, and I/O lives elsewhere.
+
+```typescript
+// Don't do this
+actions: {
+    fetchUsers: async (state) => {
+        state.isLoading = true;
+        const users = await api.getUsers(); // action boundary lost here
+        state.users = users;
+        state.isLoading = false;
+    },
+}
+
+// Do this instead — action is synchronous, fetch lives outside
+actions: {
+    setUsers: (state, users: User[]) => {
+        state.users = users;
+    },
+    setLoading: (state, loading: boolean) => {
+        state.isLoading = loading;
+    },
+}
+```
+
+See the [Recipes](/react/recipes/) section for patterns on bridging async operations (like React Query) with store actions.
+
+## TypeScript: ActionParameters
+
+Beacon provides an `ActionParameters<T>` utility type that strips the `state` parameter from an action's signature. This is what powers the type-safe action calls:
+
+```typescript
+// If your action is: (state: TState, id: number, name: string) => void
+// ActionParameters extracts: [id: number, name: string]
+// So store.actions.myAction(42, "Jim") is properly typed
+```
+
+You rarely need this type directly, but it's useful if you're building utilities that wrap or proxy store actions.

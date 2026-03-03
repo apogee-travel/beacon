@@ -1,0 +1,162 @@
+---
+title: Browser Storage
+description: Persist store state to localStorage or sessionStorage with the browserStorageMiddleware.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+```typescript
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+```
+
+The `browserStorageMiddleware` persists store state to `localStorage` or `sessionStorage`. State is hydrated from storage on creation and automatically written back whenever state changes.
+
+## Installation
+
+```bash
+npm install @apogeelabs/beacon-browserstorage
+```
+
+## Basic Usage
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+const store = createStore(
+    compose(
+        browserStorageMiddleware({ key: "user-preferences" })
+    )({
+        initialState: {
+            theme: "light",
+            sidebarOpen: true,
+            fontSize: 14,
+        },
+        actions: {
+            setTheme: (state, theme: string) => { state.theme = theme; },
+            toggleSidebar: (state) => { state.sidebarOpen = !state.sidebarOpen; },
+            setFontSize: (state, size: number) => { state.fontSize = size; },
+        },
+    })
+);
+```
+
+On first load, `initialState` is used. On subsequent loads, persisted values from storage override the defaults.
+
+## Options
+
+### `BrowserStorageOptions`
+
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `key` | `string` | Yes | — | The storage key used for `getItem`/`setItem` |
+| `storageType` | `"local" \| "session"` | No | `"local"` | Which browser storage API to use |
+
+### `key`
+
+The string key passed to `localStorage.getItem(key)` and `localStorage.setItem(key, ...)`. Choose something unique to avoid collisions with other stored data.
+
+```typescript
+browserStorageMiddleware({ key: "myapp-user-settings" })
+```
+
+### `storageType`
+
+Controls which storage API is used:
+
+- `"local"` (default) — `localStorage`: persists across browser sessions
+- `"session"` — `sessionStorage`: cleared when the tab/window closes
+
+```typescript
+// Session-only persistence
+browserStorageMiddleware({
+    key: "session-state",
+    storageType: "session",
+})
+```
+
+## How It Works
+
+### On Store Creation (Hydration)
+
+1. Attempts to read `storage.getItem(key)` and `JSON.parse` the result
+2. If found, merges the stored state into `initialState` using spread: `{ ...initialState, ...parsed }`
+3. If storage is empty, corrupted, or inaccessible, falls back to `initialState` silently (logs the error)
+
+The merge means stored values override defaults, but new properties added to `initialState` since the last save are preserved. This provides forward compatibility when you add state properties in a new release.
+
+### After Store Creation (Persistence)
+
+Sets up a MobX `reaction` that:
+
+1. Watches `store.getStateSnapshot()` for changes
+2. On change, serializes the snapshot with `JSON.stringify` and writes it to storage
+
+The reaction is registered via `store.registerCleanup()`, so it's automatically torn down when the store is disposed.
+
+<Aside type="tip">
+The persistence reaction uses MobX's `reaction` (not `autorun`) to separate the tracking phase from the effect. This prevents the write side effect from accidentally tracking additional observables.
+</Aside>
+
+## Edge Cases
+
+### Storage Unavailable
+
+In private browsing mode, some browsers restrict `localStorage`. The middleware catches the error, logs it, and continues with `initialState`. The store works — it just won't persist.
+
+### Corrupted Data
+
+If `JSON.parse` fails on the stored value, the middleware catches the error and falls back to `initialState`. The corrupted entry isn't automatically cleared, so it will fail again on next load until the key is removed or overwritten by a successful save.
+
+### Quota Exceeded
+
+If `storage.setItem` fails due to quota limits, the error is swallowed by the reaction. State continues to work in-memory; it just doesn't persist until storage is freed up.
+
+### Derived Values Not Persisted
+
+`getStateSnapshot()` is called without `{ withDerived: true }`, so only mutable state is persisted. Derived values are recomputed from state on the next load, which is the correct behavior — they're deterministic functions of state.
+
+## Full Example
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+interface AppSettings {
+    theme: "light" | "dark";
+    locale: string;
+    notifications: boolean;
+}
+
+const settingsStore = createStore(
+    compose(
+        browserStorageMiddleware<AppSettings, {}, {}>({
+            key: "app-settings",
+            storageType: "local",
+        })
+    )({
+        initialState: {
+            theme: "light",
+            locale: "en-US",
+            notifications: true,
+        } as AppSettings,
+        actions: {
+            setTheme: (state, theme: "light" | "dark") => {
+                state.theme = theme;
+            },
+            setLocale: (state, locale: string) => {
+                state.locale = locale;
+            },
+            toggleNotifications: (state) => {
+                state.notifications = !state.notifications;
+            },
+        },
+    })
+);
+
+// Changes automatically persist to localStorage under "app-settings"
+settingsStore.actions.setTheme("dark");
+
+// Clean up when done
+settingsStore.dispose(); // stops the persistence reaction
+```

@@ -1,0 +1,118 @@
+---
+title: compose
+description: API reference for the compose function.
+---
+
+```typescript
+import { compose } from "@apogeelabs/beacon";
+```
+
+Composes multiple middleware transformers into a single config transformer. Middleware is applied left-to-right.
+
+## Signature
+
+```typescript
+function compose<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+>(
+    ...middlewares: ((config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>)[]
+): (config: StoreConfig<TState, TDerived, TActions>) => StoreConfig<TState, TDerived, TActions>
+```
+
+## Parameters
+
+### `...middlewares`
+
+Variadic list of **pre-applied** middleware functions. Each middleware must have already been called with its options:
+
+```typescript
+// These are pre-applied — the outer (options) call is done
+compose(
+    browserStorageMiddleware({ key: "my-store" }),  // returns (config) => config
+    loggingMiddleware({ level: "debug" }),           // returns (config) => config
+)
+```
+
+Each function has the signature `(config: StoreConfig) => StoreConfig`.
+
+## Return Value
+
+A single function `(config: StoreConfig) => StoreConfig` that applies all middleware in sequence.
+
+## How It Works
+
+`compose` is a left-to-right `reduce`:
+
+```typescript
+return (config) => middlewares.reduce((acc, middleware) => middleware(acc), config);
+```
+
+Given `compose(a, b, c)`, the execution order is:
+
+```
+config → a(config) → b(result) → c(result) → final config
+```
+
+## Usage
+
+### Basic composition
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+const store = createStore(
+    compose(
+        browserStorageMiddleware({ key: "app-state" }),
+        myLoggingMiddleware({ verbose: true })
+    )({
+        initialState: { count: 0 },
+        actions: {
+            increment: (state) => { state.count += 1; },
+        },
+    })
+);
+```
+
+### Single middleware (compose optional)
+
+When you only have one middleware, `compose` is optional — you can call it directly:
+
+```typescript
+// These are equivalent:
+createStore(compose(myMiddleware(opts))(config));
+createStore(myMiddleware(opts)(config));
+```
+
+`compose` becomes useful at two or more middleware.
+
+### With explicit type parameters
+
+```typescript
+const transform = compose<MyState, MyDerived, MyActions>(
+    middlewareA(optsA),
+    middlewareB(optsB),
+);
+
+const config = transform({
+    initialState: { /* ... */ },
+    actions: { /* ... */ },
+});
+
+const store = createStore(config);
+```
+
+## Order Matters
+
+Middleware listed first processes the config first. If middleware B depends on state added by middleware A, list A first:
+
+```typescript
+compose(
+    addTimestampMiddleware(),      // adds `createdAt` to initialState
+    persistTimestampMiddleware(),  // reads `createdAt` from initialState
+)
+```
+
+Reversing the order would mean `persistTimestampMiddleware` runs before `createdAt` exists.

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -15 100 110" fill="none">
+  <!-- Beacon Icon: Bold B with wordmark signal arcs, rotated 45° at upper-right -->
+
+  <!-- B glyph (navy) -->
+  <g fill="#0f172a" transform="translate(0.3,88) scale(0.0498,-0.0498)">
+    <path d="M161 0V1446H659Q801 1446 902.0 1419.0Q1003 1392 1067.5 1342.0Q1132 1292 1162.0 1221.0Q1192 1150 1192 1061Q1192 1010 1177.0 963.5Q1162 917 1130.5 876.5Q1099 836 1050.5 803.0Q1002 770 935 747Q1233 680 1233 425Q1233 333 1198.0 255.0Q1163 177 1096.0 120.5Q1029 64 931.0 32.0Q833 0 707 0ZM430 634V210H702Q777 210 828.0 228.0Q879 246 909.5 276.0Q940 306 953.5 346.0Q967 386 967 431Q967 478 952.0 515.5Q937 553 905.0 579.5Q873 606 822.5 620.0Q772 634 701 634ZM430 820H644Q782 820 852.5 870.0Q923 920 923 1029Q923 1142 859.0 1190.0Q795 1238 659 1238H430Z"/>
+  </g>
+
+  <!-- Signal waves (orange) — same arcs as wordmark, rotated 45° CW -->
+  <g transform="translate(55,22) rotate(45)" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" fill="none">
+    <path d="M -4.95,-4.95 A 7,7 0 0,1 4.95,-4.95"/>
+    <path d="M -9.9,-9.9 A 14,14 0 0,1 9.9,-9.9"/>
+    <path d="M -14.9,-14.9 A 21,21 0 0,1 14.9,-14.9"/>
+  </g>
+
+</svg>

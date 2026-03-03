@@ -1,0 +1,177 @@
+---
+title: createStore
+description: API reference for the createStore function.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+```typescript
+import { createStore } from "@apogeelabs/beacon";
+```
+
+Creates a reactive state management store backed by MobX observables, computed values, and actions.
+
+## Signature
+
+```typescript
+function createStore<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState> = EmptyDerived<TState>,
+    TActions extends BeaconActions<TState> = EmptyActions,
+>(config: StoreConfig<TState, TDerived, TActions>): Store<TState, TDerived, TActions>
+```
+
+## Parameters
+
+### `config: StoreConfig`
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `initialState` | `TState` | Yes | Plain object that becomes MobX `observable`. All properties are reactive. |
+| `derived` | `TDerived` | No | Object of `(state) => value` functions. Each becomes a MobX `computed` exposed as a getter on the store. |
+| `actions` | `TActions` | No | Object of `(state, ...args) => any` functions. Each is wrapped in MobX `action()` for transaction batching. |
+| `onStoreCreated` | `(store: Store) => void` | No | Lifecycle callback invoked after the store is fully constructed. |
+
+### `initialState`
+
+A plain JavaScript object with string keys. Beacon passes it to MobX's `observable()`, making every property (including nested objects and arrays) deeply reactive.
+
+```typescript
+initialState: {
+    name: "Jim",
+    preferences: { theme: "dark", sidebar: true },  // deeply observable
+    items: [],                                        // observable array
+}
+```
+
+### `derived`
+
+An object where each value is a function `(state: TState) => any`. These become MobX `computed` properties — lazily evaluated, cached, and only recomputed when their dependencies change.
+
+```typescript
+derived: {
+    fullName: (state) => `${state.firstName} ${state.lastName}`,
+    itemCount: (state) => state.items.length,
+}
+```
+
+Derived values are accessible as top-level properties on the store instance.
+
+### `actions`
+
+An object where each value is a function `(state: TState, ...args) => any`. The `state` parameter is injected automatically — callers only provide the remaining arguments.
+
+```typescript
+actions: {
+    addItem: (state, name: string, price: number) => {
+        state.items.push({ name, price });
+    },
+}
+// Called as: store.actions.addItem("Widget", 9.99)
+```
+
+Each action is wrapped in MobX `action()`, which:
+- Names the action for DevTools visibility
+- Batches all observable mutations into a single transaction
+- Adds a disposed-store guard that prevents execution after `dispose()`
+
+### `onStoreCreated`
+
+Called once after the store is fully assembled. Receives the complete store instance.
+
+```typescript
+onStoreCreated: (store) => {
+    const disposer = autorun(() => console.log(store.count));
+    store.registerCleanup(disposer);
+}
+```
+
+<Aside type="caution">
+If middleware also uses `onStoreCreated`, callbacks are chained — each middleware captures and calls the previous one before adding its own. See [Middleware & Composition](/concepts/middleware/).
+</Aside>
+
+## Return Value
+
+Returns a `Store<TState, TDerived, TActions>` — see [Store Instance](/api/store-instance/) for the full interface.
+
+## Validation
+
+`createStore` validates that no `derived` key has the same name as an `initialState` key. If a collision is found, it throws:
+
+```
+Error: Derived key 'count' conflicts with state property of the same name
+```
+
+## Examples
+
+### Minimal store
+
+```typescript
+const counter = createStore({
+    initialState: { count: 0 },
+});
+```
+
+### Store with everything
+
+```typescript
+const store = createStore({
+    initialState: {
+        todos: [],
+        filter: "all",
+    },
+    derived: {
+        activeTodos: (state) => state.todos.filter((t) => !t.completed),
+        activeCount: (state) => state.todos.filter((t) => !t.completed).length,
+    },
+    actions: {
+        addTodo: (state, text: string) => {
+            state.todos.push({ text, completed: false });
+        },
+        toggle: (state, index: number) => {
+            state.todos[index].completed = !state.todos[index].completed;
+        },
+        setFilter: (state, filter: string) => {
+            state.filter = filter;
+        },
+    },
+    onStoreCreated: (store) => {
+        console.log("Store ready with", store.todos.length, "todos");
+    },
+});
+```
+
+### With middleware
+
+```typescript
+import { compose } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+const store = createStore(
+    compose(
+        browserStorageMiddleware({ key: "todos" })
+    )({
+        initialState: { todos: [] },
+        actions: {
+            addTodo: (state, text: string) => {
+                state.todos.push({ text, completed: false });
+            },
+        },
+    })
+);
+```
+
+## Type Parameters
+
+| Parameter | Constraint | Default | Description |
+|-----------|-----------|---------|-------------|
+| `TState` | `BeaconState` (`Record<string, any>`) | — | Shape of the store's observable state |
+| `TDerived` | `BeaconDerived<TState>` | `EmptyDerived<TState>` | Shape of derived/computed values |
+| `TActions` | `BeaconActions<TState>` | `EmptyActions` | Shape of action functions |
+
+In most cases, TypeScript infers these from the config object. You only need to specify them explicitly when the inference needs help:
+
+```typescript
+// Explicit generics — only when inference isn't enough
+const store = createStore<MyState, MyDerived, MyActions>({ ... });
+```

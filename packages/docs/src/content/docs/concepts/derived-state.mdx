@@ -1,0 +1,112 @@
+---
+title: Derived State
+description: Computed values that update automatically when their dependencies change.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Derived values are computed properties defined in the `derived` section of your store config. They're pure functions of state — MobX tracks which state properties they read and automatically recomputes them when (and only when) those properties change.
+
+## Defining Derived Values
+
+Each derived entry is a function that takes the current state and returns a value:
+
+```typescript
+const store = createStore({
+    initialState: {
+        items: [],
+        taxRate: 0.08,
+    },
+    derived: {
+        subtotal: (state) =>
+            state.items.reduce((sum, item) => sum + item.price, 0),
+
+        tax: (state) =>
+            state.items.reduce((sum, item) => sum + item.price, 0) * state.taxRate,
+
+        total: (state) => {
+            const sub = state.items.reduce((sum, item) => sum + item.price, 0);
+            return sub + sub * state.taxRate;
+        },
+
+        isEmpty: (state) => state.items.length === 0,
+    },
+});
+```
+
+## How They Work
+
+Under the hood, each derived value becomes a MobX `computed`. This means:
+
+- **Lazy evaluation**: The computation only runs when something reads the property. An unread derived value costs nothing.
+- **Caching**: Once computed, the result is cached until a dependency changes. Reading the same derived value 100 times runs the computation once.
+- **Fine-grained tracking**: MobX knows exactly which observable properties the function reads. If you update `taxRate`, `tax` and `total` recompute, but `isEmpty` doesn't.
+
+## Accessing Derived Values
+
+Derived values appear as regular properties on the store, alongside state:
+
+```typescript
+console.log(store.subtotal);  // computed on first access, cached after
+console.log(store.isEmpty);   // true if items is empty
+```
+
+There's no distinction in how you read state vs. derived values. The difference is that you can't write to derived values — they're read-only.
+
+## Derived Values in Actions
+
+Actions receive the full store as their `state` parameter, which includes both state properties and derived values:
+
+```typescript
+const store = createStore({
+    initialState: {
+        menu: {
+            stromboli: [{ id: "s1", name: "Classic Italian", price: 12.99 }],
+            calzones: [{ id: "c1", name: "Three Cheese", price: 10.99 }],
+        },
+        orders: [],
+    },
+    derived: {
+        allMenuItems: (state) => [
+            ...state.menu.stromboli,
+            ...state.menu.calzones,
+        ],
+    },
+    actions: {
+        placeOrder: (state, itemId: string) => {
+            // Access derived value inside an action
+            const item = state.allMenuItems.find((i) => i.id === itemId);
+            if (item) {
+                state.orders.push({ ...item, orderedAt: new Date() });
+            }
+        },
+    },
+});
+```
+
+<Aside type="tip">
+This is one of Beacon's more useful qualities — derived values are available everywhere, including inside actions. No need to duplicate computation logic.
+</Aside>
+
+## Derived Values in Snapshots
+
+By default, `getStateSnapshot()` strips derived values from the snapshot since they're computable from state:
+
+```typescript
+const snapshot = store.getStateSnapshot();
+// { items: [...], taxRate: 0.08 }
+// No subtotal, tax, total, or isEmpty
+
+const fullSnapshot = store.getStateSnapshot({ withDerived: true });
+// { items: [...], taxRate: 0.08, subtotal: ..., tax: ..., total: ..., isEmpty: ... }
+```
+
+The `withDerived: true` option includes them, which is useful for debugging or display purposes.
+
+## Patterns and Advice
+
+**Keep derived functions pure.** They should only read state and return a value. No side effects, no mutations, no API calls. MobX may run them multiple times or skip them entirely depending on observer demand.
+
+**Avoid expensive computations without reason.** MobX caching means a derived value only recomputes when dependencies change, so the cost is usually fine. But if you're doing something genuinely heavy (sorting thousands of items, complex graph traversals), consider whether it belongs in a derived value or should be triggered explicitly via an action.
+
+**Don't duplicate state in derived values.** If you find yourself writing `derived: { items: (state) => state.items }`, you're doing it wrong. Derived values should *transform* state, not mirror it.

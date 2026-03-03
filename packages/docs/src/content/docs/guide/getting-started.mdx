@@ -1,0 +1,82 @@
+---
+title: Getting Started
+description: Install Beacon and create your first store.
+---
+
+## Installation
+
+```bash
+npm install @apogeelabs/beacon mobx
+```
+
+For React projects, also install the React utilities:
+
+```bash
+npm install @apogeelabs/beacon-react-utils
+```
+
+## Your First Store
+
+```typescript
+import { createStore } from "@apogeelabs/beacon";
+
+const counter = createStore({
+    initialState: {
+        count: 0,
+    },
+    derived: {
+        doubled: (state) => state.count * 2,
+    },
+    actions: {
+        increment: (state) => {
+            state.count += 1;
+        },
+        decrement: (state) => {
+            state.count -= 1;
+        },
+    },
+});
+
+// Read state directly
+console.log(counter.count); // 0
+console.log(counter.doubled); // 0
+
+// Call actions
+counter.actions.increment();
+console.log(counter.count); // 1
+console.log(counter.doubled); // 2
+```
+
+## Adding Middleware
+
+Middleware extends store behavior through composition:
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+import { withBrowserStorage } from "@apogeelabs/beacon-browserstorage";
+
+const store = createStore(
+    compose(
+        withBrowserStorage({
+            key: "my-app-state",
+            storage: localStorage,
+        })
+    )({
+        initialState: { theme: "light", sidebar: true },
+        actions: {
+            toggleTheme: (state) => {
+                state.theme = state.theme === "light" ? "dark" : "light";
+            },
+        },
+    })
+);
+```
+
+## Cleanup
+
+When you're done with a store, dispose it to clean up subscriptions:
+
+```typescript
+store.dispose();
+console.log(store.isDisposed); // true
+```

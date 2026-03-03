@@ -15,6 +15,7 @@ coverage
 # build
 dist
 .turbo
+.astro
 
 # logs
 npm-debug.log*
@@ -38,3 +39,6 @@ pnpm-debug.log*
 !.vscode/settings.json
 
 docs/archive/*
+
+#Claude Code
+.claude/settings.local.json

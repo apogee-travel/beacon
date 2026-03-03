@@ -1,0 +1,125 @@
+---
+title: Disposal & Cleanup
+description: How stores clean up after themselves and why it matters.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Stores in Beacon have a built-in lifecycle. When you're done with a store — component unmount, route change, test teardown — calling `dispose()` tears it down cleanly, preventing memory leaks and zombie subscriptions.
+
+## Disposing a Store
+
+```typescript
+const store = createStore({
+    initialState: { count: 0 },
+    actions: {
+        increment: (state) => { state.count += 1; },
+    },
+});
+
+// ... use the store ...
+
+store.dispose();
+console.log(store.isDisposed); // true
+```
+
+## What Happens on Disposal
+
+When `dispose()` is called, Beacon does the following in order:
+
+1. **Marks the store as disposed** (`isDisposed = true`)
+2. **Runs all registered cleanup functions** (LIFO order — last registered, first run)
+3. **Clears observable state** — arrays are emptied, properties set to `undefined`
+4. **Replaces actions with no-ops** — calling them after disposal logs a warning
+5. **Nullifies computed references** — breaks internal MobX bookkeeping cycles so the GC can reclaim memory
+
+## Registering Cleanup Functions
+
+Middleware and application code can register cleanup functions that run on disposal:
+
+```typescript
+import { autorun } from "mobx";
+
+const store = createStore({
+    initialState: { count: 0 },
+    onStoreCreated: (store) => {
+        // autorun returns a disposer function
+        const stopAutorun = autorun(() => {
+            console.log(`Count: ${store.count}`);
+        });
+
+        // Register it for cleanup
+        store.registerCleanup(stopAutorun);
+    },
+});
+
+// When disposed, the autorun is automatically torn down
+store.dispose();
+```
+
+This is the primary mechanism middleware uses to clean up:
+
+- `beacon-browserstorage` registers its MobX `reaction` disposer
+- `beacon-actorstore` registers its actor subscription unsubscribe
+- Custom middleware can register any cleanup function
+
+<Aside type="tip">
+`registerCleanup` accepts any `() => void` function. MobX disposers, event listener removals, timer clears — anything that needs to happen when the store goes away.
+</Aside>
+
+## Guards on Disposed Stores
+
+After disposal, the store's safety mechanisms kick in:
+
+```typescript
+store.dispose();
+
+// Actions warn and do nothing
+store.actions.increment();
+// Console: "Cannot execute action 'increment': store has been disposed"
+
+// Snapshots warn and return null
+store.getStateSnapshot();
+// Console: "Cannot get state snapshot: store has been disposed"
+
+// Registering cleanup warns and does nothing
+store.registerCleanup(() => console.log("won't register"));
+// Console: "Attempted to register cleanup on disposed store"
+```
+
+This means you don't need to defensively check `isDisposed` before every operation — the store handles it. But if you have code that conditionally operates on a store, `isDisposed` is there for you:
+
+```typescript
+if (!store.isDisposed) {
+    store.actions.doSomething();
+}
+```
+
+## Multiple Disposal Calls
+
+Calling `dispose()` more than once is safe — subsequent calls are no-ops:
+
+```typescript
+store.dispose(); // runs cleanup
+store.dispose(); // does nothing
+store.dispose(); // still nothing
+```
+
+## When to Dispose
+
+- **React components**: Dispose in a `useEffect` cleanup, or let a context provider manage it
+- **Tests**: Dispose in `afterEach` to prevent test pollution
+- **Module-level stores**: Dispose when the module/feature is no longer needed
+
+```typescript
+// React example
+useEffect(() => {
+    const store = createMyStore();
+    // ... use store ...
+    return () => store.dispose();
+}, []);
+```
+
+<Aside type="caution">
+If you're using `beacon-react-utils` hooks (`useStoreWatcher`, `useStoreState`), they register their own cleanup with the store. Disposing the store will clean up those subscriptions automatically.
+</Aside>

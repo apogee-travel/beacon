@@ -1,0 +1,155 @@
+---
+title: Middleware & Composition
+description: How middleware transforms store configs and how compose chains them together.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Middleware is Beacon's extension mechanism. It transforms the store configuration *before* `createStore` processes it, letting you inject behavior — persistence, logging, telemetry, actor control — without modifying store code.
+
+## The Middleware Signature
+
+Every middleware follows a curried pattern:
+
+```typescript
+(options) => (config) => config
+```
+
+1. **Outer function**: Takes middleware-specific options. Returns the transformer.
+2. **Inner function**: Receives the `StoreConfig`, transforms it, returns the modified config.
+
+```typescript
+const myMiddleware = (options: MyOptions) => {
+    return (config: StoreConfig) => {
+        // Transform config here
+        return {
+            ...config,
+            initialState: {
+                ...config.initialState,
+                injectedProp: options.defaultValue,
+            },
+        };
+    };
+};
+```
+
+## What Middleware Can Do
+
+A middleware function can modify any part of the store config:
+
+| Config Property | What You Can Do |
+|----------------|-----------------|
+| `initialState` | Hydrate from storage, inject defaults, merge external data |
+| `derived` | Add computed properties, wrap existing ones |
+| `actions` | Add new actions, wrap existing ones with logging/validation, replace them |
+| `onStoreCreated` | Chain post-creation side effects (reactions, subscriptions, cleanup registration) |
+
+## Using a Single Middleware
+
+When you only need one middleware, invoke it and pass the result to `createStore`:
+
+```typescript
+import { createStore } from "@apogeelabs/beacon";
+import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
+
+const store = createStore(
+    browserStorageMiddleware({ key: "my-store" })({
+        initialState: { theme: "light" },
+        actions: {
+            toggleTheme: (state) => {
+                state.theme = state.theme === "light" ? "dark" : "light";
+            },
+        },
+    })
+);
+```
+
+The middleware factory (`browserStorageMiddleware({ key: "my-store" })`) returns a function that takes the config and returns a modified config. That modified config is what `createStore` receives.
+
+## Composing Multiple Middleware
+
+When you need more than one middleware, use `compose`:
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+
+const store = createStore(
+    compose(
+        browserStorageMiddleware({ key: "my-store" }),
+        loggingMiddleware({ level: "debug" }),
+        telemetryMiddleware({ endpoint: "/api/events" })
+    )({
+        initialState: { /* ... */ },
+        actions: { /* ... */ },
+    })
+);
+```
+
+### How `compose` Works
+
+`compose` takes any number of pre-applied middleware functions and returns a single function that applies them **left-to-right**:
+
+```
+config → middleware1 → middleware2 → middleware3 → final config
+```
+
+Under the hood, it's a `reduce`:
+
+```typescript
+function compose(...middlewares) {
+    return (config) => middlewares.reduce((acc, mw) => mw(acc), config);
+}
+```
+
+Order matters. If `middleware1` adds a state property and `middleware2` reads it, `middleware1` must come first.
+
+<Aside type="tip">
+Left-to-right composition is intuitive — middleware listed first runs first. This is the opposite of function composition in math (`f(g(x))`) but matches how most developers think about pipelines.
+</Aside>
+
+## The `onStoreCreated` Chain
+
+The most important pattern to understand is how middleware chains `onStoreCreated`. Multiple middleware each need to run post-creation logic, so each one must preserve the existing callback:
+
+```typescript
+const myMiddleware = (options) => (config) => {
+    const originalOnStoreCreated = config.onStoreCreated;
+
+    return {
+        ...config,
+        onStoreCreated: (store) => {
+            // Always call the existing hook first
+            if (originalOnStoreCreated) {
+                originalOnStoreCreated(store);
+            }
+
+            // Then add your own logic
+            const disposer = reaction(
+                () => store.someValue,
+                (value) => doSomething(value)
+            );
+            store.registerCleanup(disposer);
+        },
+    };
+};
+```
+
+<Aside type="danger">
+If you forget to call `originalOnStoreCreated`, you silently drop every previous middleware's post-creation hooks. This is the #1 middleware bug. Always capture and call the existing callback.
+</Aside>
+
+## Middleware Type
+
+Beacon exports a `MiddlewareFunction` type for TypeScript:
+
+```typescript
+import type { MiddlewareFunction } from "@apogeelabs/beacon";
+
+const myMiddleware: MiddlewareFunction<MyState, MyDerived, MyActions, MyOptions> =
+    (options) => (config) => {
+        // ...
+        return config;
+    };
+```
+
+See [Writing Custom Middleware](/middleware/custom/) for a complete walkthrough of building your own.

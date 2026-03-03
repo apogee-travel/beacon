@@ -78,7 +78,7 @@ export default defineConfig({
                 {
                     icon: "github",
                     label: "GitHub",
-                    href: "https://github.com/apogee-stealth/beacon",
+                    href: "https://github.com/apogee-travel/beacon",
                 },
                 {
                     icon: "npm",

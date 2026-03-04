@@ -1,10 +1,16 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeNova from "starlight-theme-nova";
+import { rehypeBasePath } from "./plugins/rehype-base-path.mjs";
+
+const base = "/beacon";
 
 export default defineConfig({
     site: "https://apogee-travel.github.io",
-    base: "/beacon",
+    base,
+    markdown: {
+        rehypePlugins: [() => rehypeBasePath({ base })],
+    },
     vite: {
         ssr: {
             noExternal: ["nanoid", "zod"],
@@ -26,7 +32,7 @@ export default defineConfig({
                     tag: "link",
                     attrs: {
                         rel: "icon",
-                        href: "/favicon.ico",
+                        href: `${base}/favicon.ico`,
                         sizes: "16x16 32x32 48x48",
                     },
                 },
@@ -34,7 +40,7 @@ export default defineConfig({
                     tag: "link",
                     attrs: {
                         rel: "apple-touch-icon",
-                        href: "/apple-touch-icon.png",
+                        href: `${base}/apple-touch-icon.png`,
                         sizes: "180x180",
                     },
                 },
@@ -42,7 +48,7 @@ export default defineConfig({
                     tag: "meta",
                     attrs: {
                         property: "og:image",
-                        content: "/og-image.png",
+                        content: `${base}/og-image.png`,
                     },
                 },
                 {
@@ -70,7 +76,7 @@ export default defineConfig({
                     tag: "meta",
                     attrs: {
                         name: "twitter:image",
-                        content: "/og-image.png",
+                        content: `${base}/og-image.png`,
                     },
                 },
             ],

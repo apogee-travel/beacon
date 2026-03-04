@@ -1,5 +1,16 @@
 # @apogeelabs/beacon-actorstore
 
+## 1.1.0
+
+### Minor Changes
+
+- Documentation enhancements, store disposal leak fix, new useStoreState hook, and friends.
+
+### Patch Changes
+
+- Updated dependencies
+    - @apogeelabs/beacon@1.1.0
+
 ## 1.0.0
 
 ### Major Changes

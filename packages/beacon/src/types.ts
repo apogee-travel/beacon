@@ -2,13 +2,25 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// Basic state type
+/**
+ * Constraint type for store state objects.
+ * State must be a plain object with string keys — this keeps the observable
+ * surface predictable and prevents non-serializable values from sneaking in as top-level keys.
+ */
 export type BeaconState = Record<string, any>;
 
-// Derived values type
+/**
+ * Constraint type for derived (computed) value definitions.
+ * Each entry is a function that receives the current state and returns a derived value.
+ * MobX tracks which state properties are accessed so it knows when to recompute.
+ */
 export type BeaconDerived<TState = BeaconState> = Record<string, (state: TState) => any>;
 
-// Actions type
+/**
+ * Constraint type for action definitions.
+ * Actions always receive the observable state as their first argument — the store injects
+ * this so callers never pass state directly. Additional args are forwarded from the call site.
+ */
 export type BeaconActions<TState = BeaconState> = Record<
     string,
     (state: TState, ...args: any[]) => any
@@ -132,7 +144,16 @@ export type Store<
 };
 
 /**
- * Type helper for middleware functions
+ * Type helper for middleware functions.
+ *
+ * Middleware uses a curried signature: `(options) => (config) => StoreConfig`.
+ * The outer function captures middleware-specific options and returns a transformer.
+ * The transformer receives the current StoreConfig (possibly already modified by earlier
+ * middleware), applies its changes, and passes the result down the chain via `compose`.
+ *
+ * @example
+ * const myMiddleware: MiddlewareFunction<MyState, MyDerived, MyActions, MyOptions> =
+ *   (options) => (config) => ({ ...config, initialState: { ...config.initialState, ...hydrated } });
  */
 export type MiddlewareFunction<
     TState extends BeaconState,

@@ -43,7 +43,8 @@ export function createStore<
         }
     }
 
-    // Create store instance with initial state
+    // Wrapping in observable() makes every property reactive — MobX can then track
+    // reads and writes so computed values and reactions update automatically.
     const store = observable({
         ...config.initialState,
     });
@@ -51,18 +52,17 @@ export function createStore<
     // Collection of computed property instances for cleanup
     const computedProperties: Record<string, IComputedValue<any>> = {};
 
-    // Add derived (computed) properties
     if (config.derived) {
         for (const key in config.derived) {
-            // Create a computed property for each derived value
             const computedValue = computed(() => {
                 return config.derived![key](store as any);
             });
 
-            // Store the computed property for cleanup
             computedProperties[key] = computedValue;
 
-            // Add the computed property to the store
+            // Object.defineProperty with a getter exposes the computed value as a plain property
+            // access on the store, while keeping MobX's lazy evaluation intact — the computation
+            // only runs when something actually reads the property.
             Object.defineProperty(store, key, {
                 get: () => computedValue.get(),
                 enumerable: true,
@@ -75,14 +75,14 @@ export function createStore<
     const actions = {} as any;
     if (config.actions) {
         for (const key in config.actions) {
+            // action() names the function for MobX DevTools and batches all observable
+            // mutations inside it into a single transaction, preventing intermediate renders.
             actions[key] = action(key, (...args: any[]) => {
-                // Check if store is disposed before executing actions
                 if ((store as any).isDisposed) {
                     console.warn(`Cannot execute action '${key}': store has been disposed`);
                     return;
                 }
 
-                // Wrap in action to ensure changes are tracked properly
                 return config.actions![key](
                     store as any,
                     ...(args as ActionParameters<TActions[Extract<keyof TActions, string>]>)
@@ -96,7 +96,9 @@ export function createStore<
         // Check if store is disposed
         if ((store as any).isDisposed) {
             console.warn("Cannot get state snapshot: store has been disposed");
-            return null; //
+            // Returning null signals the store is gone — callers should treat this as a no-op
+            // rather than attempting to use the result.
+            return null;
         }
 
         const snapshot = toJS(store);
@@ -109,7 +111,8 @@ export function createStore<
             }
         }
 
-        // Remove special properties from snapshot
+        // Strip store API methods — the snapshot is plain state data for serialization
+        // or persistence, so consumers shouldn't see non-serializable function references.
         delete snapshot.actions;
         delete snapshot.isDisposed;
         delete snapshot.dispose;
@@ -156,9 +159,14 @@ export function createStore<
             }
         }
 
+        // runInAction is required because we're mutating observable state — MobX enforces that
+        // all observable writes happen inside an action to maintain transactional consistency
+        // and prevent partially-updated state from being observed mid-disposal.
         runInAction(() => {
-            // Clean up state properties - simple approach intended to let garbage collection handle most cleanup
-            for (const key in initialStateKeys) {
+            // Explicitly nullify state properties and computed refs to break reference cycles.
+            // Observable objects hold internal MobX bookkeeping that won't GC on its own
+            // without these being cleared first.
+            for (const key of initialStateKeys) {
                 try {
                     const value = (store as any)[key];
                     // Clear arrays if possible

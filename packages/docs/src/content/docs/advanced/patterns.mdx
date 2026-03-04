@@ -1,0 +1,171 @@
+---
+title: Patterns & Conventions
+description: Established and emerging patterns for using Beacon effectively.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+These patterns have emerged from real-world use of Beacon. Some are well-established conventions; others are still evolving.
+
+## Established Patterns
+
+### Mutable State + Derived State = No Selectors
+
+One of Beacon's biggest wins is eliminating the selector/memoization dance. State that would normally require `useMemo`, `useCallback`, or selector libraries lives in the store as derived values:
+
+```typescript
+const store = createStore({
+    initialState: {
+        items: [],
+        filterTerm: "",
+        sortBy: "name",
+    },
+    derived: {
+        // These replace useMemo + selector patterns
+        filteredItems: (state) =>
+            state.items.filter((i) =>
+                i.name.toLowerCase().includes(state.filterTerm.toLowerCase())
+            ),
+        sortedFilteredItems: (state) => {
+            const filtered = state.items.filter((i) =>
+                i.name.toLowerCase().includes(state.filterTerm.toLowerCase())
+            );
+            return [...filtered].sort((a, b) =>
+                a[state.sortBy].localeCompare(b[state.sortBy])
+            );
+        },
+    },
+});
+```
+
+Components just read `store.sortedFilteredItems` — no memoization needed. MobX handles caching and invalidation.
+
+### Actions Are the Only Way to Mutate
+
+Direct observable mutation is possible in MobX, but in Beacon, all state changes go through actions. This isn't enforced at the MobX level (Beacon doesn't use `enforceActions: "always"`), but it's a strong convention:
+
+```typescript
+// Do this
+store.actions.setFilter("active");
+
+// Don't do this (even though MobX technically allows it)
+store.filter = "active";
+```
+
+Why: actions are named, batched, and guarded against disposed stores. Direct mutations bypass all three.
+
+### Stores Don't Make API Calls
+
+Stores are synchronous state containers. They don't `fetch`, they don't `await`, they don't call APIs. API integration happens outside the store:
+
+- **Bridge hooks** connect stores to React Query (see [Recipes](/react/recipes/))
+- **Middleware** can set up reactions that sync state externally
+- **External modules** can call store actions with API results
+
+```typescript
+// Store: pure synchronous state
+const userStore = createStore({
+    initialState: { users: [], isLoading: false },
+    actions: {
+        setUsers: (state, users: User[]) => { state.users = users; },
+        setLoading: (state, loading: boolean) => { state.isLoading = loading; },
+    },
+});
+
+// API logic lives outside the store
+async function loadUsers() {
+    userStore.actions.setLoading(true);
+    const users = await api.getUsers();
+    userStore.actions.setUsers(users);
+    userStore.actions.setLoading(false);
+}
+```
+
+### Cross-Store References
+
+Stores can reference other stores when the relationship is justified:
+
+```typescript
+const authStore = createStore({
+    initialState: { user: null },
+    // ...
+});
+
+const profileStore = createStore({
+    initialState: { preferences: {} },
+    derived: {
+        displayName: () => authStore.user?.name ?? "Anonymous",
+    },
+});
+```
+
+This works because MobX tracks observable reads globally — `profileStore.displayName` automatically recomputes when `authStore.user` changes.
+
+<Aside type="caution">
+Use cross-store references sparingly. They create implicit coupling. If you find stores frequently reading each other, consider whether they should be a single store or whether a derived value in a parent store would be cleaner.
+</Aside>
+
+## Emerging Patterns
+
+These patterns are still being refined but have shown promise.
+
+### Root Store Context
+
+Exposing stores through a central root store and React context:
+
+```typescript
+// rootStore.ts
+export const rootStore = {
+    auth: createAuthStore(),
+    settings: createSettingsStore(),
+    search: createSearchStore(),
+};
+
+export type RootStore = typeof rootStore;
+
+// RootStoreContext.tsx
+const RootStoreContext = createContext<RootStore>(rootStore);
+
+export function useRootStore() {
+    return useContext(RootStoreContext);
+}
+
+// Usage in a component
+const Component = observer(() => {
+    const { search } = useRootStore();
+    return <div>{search.results.length} results</div>;
+});
+```
+
+### API/Store Adapters
+
+An intermediary layer between API responses and store actions:
+
+- **Bridge hooks** that are set up in the root store context provider
+- **Adapter modules** that translate API shapes into store action calls
+
+The key principle: bridge hooks should not return an API for consumers to use. If a component needs to trigger an action that involves an API call (like "fetch next page"), use an event emitter pattern to decouple intent from implementation. See the [Recipes](/react/recipes/) page for the full pattern.
+
+## Anti-Patterns
+
+### Storing Server State in the Store
+
+Don't duplicate React Query's job. If data comes from an API and you're already using React Query for caching/deduplication/refetching, the store should hold *derived* UI state (selections, filters, transformations), not a copy of the API response.
+
+### Async Actions
+
+Don't put `async/await` inside actions. MobX `action()` wrapping doesn't extend across `await` boundaries. See [Actions](/concepts/actions/) for the full explanation.
+
+### Giant Monolithic Stores
+
+A single store with 50 state properties and 30 actions is a code smell. Split along domain boundaries:
+
+```typescript
+// Instead of one megastore:
+const appStore = createStore({ /* 200 lines of everything */ });
+
+// Split by domain:
+const authStore = createStore({ /* auth state */ });
+const searchStore = createStore({ /* search state */ });
+const settingsStore = createStore({ /* settings state */ });
+```

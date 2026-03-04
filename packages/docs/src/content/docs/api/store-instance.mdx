@@ -1,0 +1,194 @@
+---
+title: Store Instance
+description: API reference for the store object returned by createStore.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The object returned by `createStore()` is a `Store<TState, TDerived, TActions>`. It combines your state, derived values, and a set of built-in methods.
+
+## Type Definition
+
+```typescript
+type Store<TState, TDerived, TActions> =
+    TState &
+    { [K in keyof TDerived]: ReturnType<TDerived[K]> } &
+    {
+        actions: { [K in keyof TActions]: (...args: ActionParameters<TActions[K]>) => ReturnType<TActions[K]> };
+        getStateSnapshot: (options?: { withDerived?: boolean }) => TState | null;
+        registerCleanup: (cleanupFn: CleanupFunction) => void;
+        dispose: () => void;
+        isDisposed: boolean;
+    };
+```
+
+## State Properties
+
+All properties from `initialState` are accessible directly on the store:
+
+```typescript
+const store = createStore({
+    initialState: { name: "Jim", count: 0 },
+});
+
+store.name;  // "Jim"
+store.count; // 0
+```
+
+These are MobX observables. Reading them inside a MobX `observer`, `reaction`, `autorun`, or `computed` automatically tracks them for reactivity.
+
+## Derived Properties
+
+All entries from `derived` are accessible as top-level getters:
+
+```typescript
+const store = createStore({
+    initialState: { items: [1, 2, 3] },
+    derived: { total: (state) => state.items.reduce((a, b) => a + b, 0) },
+});
+
+store.total; // 6 — MobX computed, cached until `items` changes
+```
+
+## `actions`
+
+An object containing all action methods, with the `state` parameter stripped from each signature:
+
+```typescript
+const store = createStore({
+    initialState: { count: 0 },
+    actions: {
+        increment: (state) => { state.count += 1; },
+        add: (state, amount: number) => { state.count += amount; },
+    },
+});
+
+store.actions.increment();  // no args needed
+store.actions.add(5);       // only the non-state args
+```
+
+After disposal, actions become no-ops that log a warning.
+
+## `getStateSnapshot(options?)`
+
+Returns a plain JavaScript copy of the store's state with MobX wrappers stripped via `toJS()`.
+
+### Parameters
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `withDerived` | `boolean` | `false` | Include derived values in the snapshot |
+
+### Return Value
+
+- A plain object with the store's state properties
+- If `withDerived: true`, also includes derived values
+- API methods (`actions`, `dispose`, etc.) are always stripped
+- Returns `null` if the store is disposed
+
+```typescript
+const store = createStore({
+    initialState: { count: 0, items: ["a", "b"] },
+    derived: { total: (state) => state.items.length },
+    actions: { increment: (state) => { state.count += 1; } },
+});
+
+store.getStateSnapshot();
+// { count: 0, items: ["a", "b"] }
+
+store.getStateSnapshot({ withDerived: true });
+// { count: 0, items: ["a", "b"], total: 2 }
+```
+
+<Aside type="tip">
+Snapshots are plain objects suitable for serialization (`JSON.stringify`), persistence, or logging. The `browserStorageMiddleware` uses `getStateSnapshot()` internally to persist state.
+</Aside>
+
+## `registerCleanup(cleanupFn)`
+
+Registers a function to be called when `dispose()` is invoked.
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cleanupFn` | `() => void` | Function to run on disposal |
+
+### Behavior
+
+- Non-function values are ignored with a warning
+- Registering on a disposed store is ignored with a warning
+- Cleanup functions run in LIFO order (last registered, first executed)
+
+```typescript
+store.registerCleanup(() => {
+    console.log("Store is being torn down");
+});
+```
+
+## `dispose()`
+
+Tears down the store completely. See [Disposal & Cleanup](/concepts/disposal/) for full details.
+
+### Behavior
+
+1. Sets `isDisposed` to `true`
+2. Runs all registered cleanup functions
+3. Clears observable state (arrays emptied, properties set to `undefined`)
+4. Replaces actions with warning no-ops
+5. Nullifies internal computed references
+
+Safe to call multiple times — subsequent calls are no-ops.
+
+```typescript
+store.dispose();
+```
+
+## `isDisposed`
+
+A boolean indicating whether the store has been disposed. Starts as `false`, set to `true` when `dispose()` is called.
+
+```typescript
+store.isDisposed; // false
+store.dispose();
+store.isDisposed; // true
+```
+
+<Aside>
+`isDisposed` is non-enumerable — it won't show up in `Object.keys()` or `for...in` loops. This is intentional to keep it out of serialization and state snapshots.
+</Aside>
+
+## Utility Types
+
+### `ActionParameters<T>`
+
+Extracts the parameter types of an action function, minus the first `state` parameter:
+
+```typescript
+type MyAction = (state: MyState, id: number, name: string) => void;
+type Params = ActionParameters<MyAction>; // [id: number, name: string]
+```
+
+### `CleanupFunction`
+
+Alias for `() => void`. Used by `registerCleanup`.
+
+### `BeaconState`
+
+Constraint type: `Record<string, any>`. Your `initialState` must satisfy this.
+
+### `BeaconDerived<TState>`
+
+Constraint type: `Record<string, (state: TState) => any>`.
+
+### `BeaconActions<TState>`
+
+Constraint type: `Record<string, (state: TState, ...args: any[]) => any>`.
+
+### `StoreConfig<TState, TDerived, TActions>`
+
+The full configuration interface passed to `createStore`. See [createStore](/api/create-store/) for details.
+
+### `MiddlewareFunction<TState, TDerived, TActions, TOptions>`
+
+Type helper for middleware. See [Middleware & Composition](/concepts/middleware/) for the pattern.

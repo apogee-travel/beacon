@@ -1,11 +1,11 @@
 # @apogeelabs/beacon-react-utils v1.0.0
 
-React hook for watching Beacon store state changes from inside hooks (where `observer` from mobx-react-lite can't be used).
+React hooks for watching Beacon store state changes from inside hooks (where `observer` from mobx-react-lite can't be used).
 
 ## Imports
 
 ```typescript
-import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
+import { useStoreWatcher, useStoreState } from "@apogeelabs/beacon-react-utils";
 ```
 
 ## Type Signature
@@ -73,6 +73,58 @@ useStoreWatcher(
     - Calls `onChange` only when values actually differ
 3. Registers the reaction disposer with `store.registerCleanup()` for store-level teardown.
 4. Returns a useEffect cleanup function that also disposes the reaction on unmount.
+
+---
+
+## `useStoreState`
+
+Returns a store-selected value as React state. Built on `useStoreWatcher` internally.
+
+### Type Signature
+
+```typescript
+function useStoreState<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
+    T,
+>(
+    store: Store<TState, TDerived, TActions>,
+    selector: (store: Store<TState, TDerived, TActions>) => T,
+): T;
+```
+
+### When to use
+
+Use `useStoreState` when you need a store value to participate in React's state lifecycle — for example, to drive React Query parameters, to pass into hooks that don't understand MobX observables, or to feed non-observer child components.
+
+For normal component rendering, prefer wrapping your component with `observer` from `mobx-react-lite` and reading store values directly. That's simpler and more performant.
+
+### Usage
+
+```typescript
+import { useStoreState } from "@apogeelabs/beacon-react-utils";
+import { useInfiniteQuery } from "@tanstack/react-query";
+
+function useSearchBridge(searchStore: SearchStore) {
+    // Store's derived searchParams as React state — drives React Query
+    const searchParams = useStoreState(searchStore, store => store.searchParams);
+
+    // React Query refetches when searchParams changes
+    const { data, isLoading } = useInfiniteQuery({
+        queryKey: ["search", searchParams],
+        queryFn: () => fetchResults(searchParams),
+    });
+}
+```
+
+### How it works
+
+1. Initializes `useState` with `toJS(selector(store))` to get a plain JS snapshot of the current value.
+2. Sets up `useStoreWatcher` with the selector and React's `setValue` as the onChange callback.
+3. When the store value changes, `useStoreWatcher` calls `setValue`, updating React state and triggering a re-render.
+
+---
 
 ## Gotchas
 

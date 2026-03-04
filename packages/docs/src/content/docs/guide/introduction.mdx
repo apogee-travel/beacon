@@ -1,0 +1,26 @@
+---
+title: Introduction
+description: What Beacon is and why it exists.
+---
+
+Beacon is a composable state management library built on [MobX](https://mobx.js.org/). It provides a thin, opinionated layer over MobX's reactive primitives — observable state, computed derived values, and actions — with a middleware system for extending store behavior.
+
+## Why Beacon?
+
+MobX is excellent at what it does: fine-grained reactivity with minimal boilerplate. But wiring up a store with observables, computed values, actions, and lifecycle management is repetitive. Beacon handles that plumbing so you can focus on your state shape and business logic.
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| `@apogeelabs/beacon` | Core store creation, composition, and types |
+| `@apogeelabs/beacon-browserstorage` | Middleware for localStorage/sessionStorage persistence |
+| `@apogeelabs/beacon-react-utils` | React hooks for store subscriptions |
+| `@apogeelabs/beacon-actorstore` | Experimental xstate actor model extension |
+
+## Key Concepts
+
+- **Stores** are created with `createStore()`, which takes initial state, optional derived values, and optional actions
+- **Middleware** transforms the store config before creation, following a `(options) => (config) => config` pattern
+- **Composition** chains middleware left-to-right via `compose()`
+- **Disposal** provides cleanup lifecycle for subscriptions and side effects

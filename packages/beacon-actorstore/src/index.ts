@@ -38,6 +38,11 @@ export interface ActorControlledStoreOptions<
      */
     allowRegularActions?: boolean;
 
+    /**
+     * Whether to start the actor automatically when the store is created.
+     * Defaults to true. Set to false if you need to start the actor manually
+     * (e.g., to attach listeners or configure it before it begins processing events).
+     */
     autoStartActor?: boolean;
 }
 
@@ -62,7 +67,16 @@ export type ActorControlledStore<
 };
 
 /**
- * Middleware that controls a store with an XState actor
+ * Middleware factory that wires an XState actor to a Beacon store.
+ *
+ * Follows the standard curried middleware pattern: `(options) => (config) => StoreConfig`.
+ * The returned middleware function transforms the store config by:
+ * - Subscribing to actor snapshots and syncing them into store state via `mapSnapshotToState`
+ *   (or direct context key matching if no mapper is provided)
+ * - Replacing regular store actions with no-ops unless `allowRegularActions` is true
+ * - Exposing `actor` and `actorActions` as additional store properties after creation
+ *
+ * Key options: `actor` (required), `actorLogic`, `mapSnapshotToState`, `allowRegularActions`, `onError`.
  */
 export function withActorControl<
     TState extends BeaconState,
@@ -85,14 +99,15 @@ export function withActorControl<
     return (
         config: StoreConfig<TState, TDerived, TActions>
     ): StoreConfig<TState, TDerived, TActions> => {
-        // Create actions object based on whether regular actions are allowed
         const enhancedActions: Record<string, any> = {};
 
         if (allowRegularActions) {
-            // Use original actions if regular actions are allowed
             Object.assign(enhancedActions, config.actions || {});
         } else if (config.actions && Object.keys(config.actions).length > 0) {
-            // Create warning functions for all original actions
+            // When the actor owns the store, regular actions are suppressed by default.
+            // Allowing direct mutations alongside actor snapshot syncs creates a split-brain
+            // problem: the actor's internal state and the store's observable state can diverge,
+            // making it impossible to reason about which one is the source of truth.
             Object.keys(config.actions || {}).forEach(actionName => {
                 enhancedActions[actionName] = (..._args: any[]) => {
                     console.warn(
@@ -115,15 +130,15 @@ export function withActorControl<
             // Create actor actions container
             const actorActionsContainer: Record<string, any> = {};
 
-            // Add actor actions to the separate actorActions property
             if (actorActions) {
                 Object.entries(actorActions).forEach(([actionName, actionFn]) => {
-                    // Create a wrapper function that automatically injects the actor
                     actorActionsContainer[actionName] = (...args: any[]) => {
                         try {
-                            // Call the original action function with actor as the first argument
                             return actionFn(actor, ...args);
                         } catch (error) {
+                            // Route errors through onError rather than letting them propagate
+                            // unhandled — a throw inside an actor send can otherwise crash the
+                            // subscriber loop and silence all future state updates.
                             if (onError) {
                                 onError(error);
                             } else {
@@ -144,6 +159,7 @@ export function withActorControl<
 
             // Function to update store state from actor snapshot
             const updateStoreFromSnapshot = (snapshot: SnapshotFrom<TMachine>) => {
+                if (store.isDisposed) return;
                 try {
                     let stateUpdates: Partial<TState>;
 
@@ -198,6 +214,9 @@ export function withActorControl<
                 },
             });
 
+            // Register unsubscribe so the actor subscription is torn down when the store is disposed.
+            store.registerCleanup(() => subscription.unsubscribe());
+
             // Call the original onStoreCreated if it exists
             if (config.onStoreCreated) {
                 config.onStoreCreated(store);
@@ -206,9 +225,6 @@ export function withActorControl<
             if (autoStartActor) {
                 (actor as any).start();
             }
-
-            // Return unsubscribe function (could be used for cleanup in future versions)
-            return subscription.unsubscribe;
         };
 
         return {
@@ -242,7 +258,11 @@ export type ActorAction<
 > = (actor: ActorRefFrom<TMachine>, ...args: TParams) => TReturn;
 
 /**
- * Helper function to infer types when defining actor actions
+ * Identity function that exists purely for TypeScript's benefit.
+ *
+ * Without this, callers would need to spell out the full generic signature manually.
+ * Passing the action map through here lets TS infer `TMachine` and `TActorActions`
+ * from the values, giving you type-safe actor actions with zero annotation overhead.
  */
 export function defineActorActions<
     TMachine extends AnyActorLogic,
@@ -255,7 +275,10 @@ export function defineActorActions<
 }
 
 /**
- * Helper function to create a fully-typed actor-controlled store
+ * Convenience wrapper that composes `withActorControl` and `createStore` in a single call.
+ *
+ * When actor control is the only middleware you need, manually calling `compose(withActorControl(...))`
+ * is ceremony without benefit. This collapses that into one function while preserving full type inference.
  */
 export function createActorControlledStore<
     TState extends BeaconState,
@@ -264,7 +287,9 @@ export function createActorControlledStore<
     TMachine extends AnyActorLogic,
     TActorActions extends Record<string, ActorAction<TMachine, any>>,
 >(
-    createStoreFunction: any, // This should be the createStore function from Beacon
+    // Typed as `any` and injected as a parameter to avoid a circular package dependency —
+    // beacon-actorstore can't import directly from @apogeelabs/beacon without creating a cycle.
+    createStoreFunction: any,
     config: StoreConfig<TState, TDerived, TActions>,
     actorControlOptions: ActorControlledStoreOptions<TState, TMachine, TActorActions>
 ): ActorControlledStore<TState, TDerived, TActions, TMachine, TActorActions> {

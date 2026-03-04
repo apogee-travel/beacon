@@ -8,7 +8,7 @@
     ],
     "version": "1.0.0",
     "license": "ISC",
-    "description": "beacon middleware for react-query integration with beacon stores",
+    "description": "React hooks and utilities for Beacon stores",
     "engines": {
         "node": ">=18"
     },

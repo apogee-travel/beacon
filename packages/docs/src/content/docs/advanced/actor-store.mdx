@@ -1,0 +1,205 @@
+---
+title: Actor Store
+description: Wire XState actors to Beacon stores for state-machine-driven state management.
+---
+
+import { Aside, Badge } from "@astrojs/starlight/components";
+
+<Badge text="Experimental" variant="caution" size="large" />
+
+```typescript
+import { withActorControl, createActorControlledStore, defineActorActions } from "@apogeelabs/beacon-actorstore";
+```
+
+The `beacon-actorstore` package connects [XState](https://xstate.js.org/) actors to Beacon stores. The actor becomes the source of truth for state transitions, while the Beacon store provides the MobX observable layer for React rendering.
+
+<Aside type="caution">
+This package is experimental and in active development. The API may change. Use it if you're exploring actor-model patterns, but don't build production workflows on it without expecting breaking changes.
+</Aside>
+
+## Installation
+
+```bash
+npm install @apogeelabs/beacon-actorstore xstate
+```
+
+Requires `@apogeelabs/beacon` and `mobx` as peer dependencies.
+
+## Core Concept
+
+In a normal Beacon store, you mutate state directly via actions. In an actor-controlled store, an XState actor owns the state transitions:
+
+- **Actor snapshot** → synced into the Beacon store's observable state
+- **Regular actions** → suppressed by default (to prevent split-brain)
+- **Actor actions** → send events to the actor, which produces new snapshots
+
+The Beacon store is a reactive *view* of the actor's state, not an independent state container.
+
+## `withActorControl`
+
+Middleware factory that wires an XState actor to a Beacon store.
+
+### Signature
+
+```typescript
+function withActorControl<TState, TDerived, TActions, TMachine, TActorActions>(
+    options: ActorControlledStoreOptions<TState, TMachine, TActorActions>
+): (config: StoreConfig) => StoreConfig
+```
+
+### Options
+
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `actor` | `ActorRefFrom<TMachine>` | Yes | — | The XState actor instance |
+| `actorActions` | `Record<string, Function>` | No | `{}` | Functions that receive the actor and send events |
+| `mapSnapshotToState` | `(snapshot, state) => Partial<TState>` | No | auto-map by key | Custom snapshot-to-state mapping |
+| `onError` | `(error) => void` | No | `console.error` | Error handler for actor subscription errors |
+| `allowRegularActions` | `boolean` | No | `false` | Whether regular Beacon actions are allowed |
+| `autoStartActor` | `boolean` | No | `false` | Whether to start the actor on store creation |
+
+### How State Syncing Works
+
+When the actor emits a new snapshot:
+
+1. If `mapSnapshotToState` is provided, it maps snapshot → state updates
+2. Otherwise, keys from the actor's `context` are matched to `initialState` keys — only matching keys are synced
+3. Updates are applied in a single `runInAction` transaction
+
+### Why Regular Actions Are Suppressed
+
+By default, `allowRegularActions` is `false`. This prevents a split-brain problem: if both the actor and direct actions can mutate state, the actor's internal state and the store's observable state diverge. You lose the single source of truth.
+
+If you set `allowRegularActions: true`, you're responsible for ensuring consistency.
+
+## `defineActorActions`
+
+Type inference helper for defining actor actions:
+
+```typescript
+const actorActions = defineActorActions<typeof myMachine>({
+    start: (actor) => actor.send({ type: "START" }),
+    pause: (actor) => actor.send({ type: "PAUSE" }),
+    setSpeed: (actor, speed: number) => actor.send({ type: "SET_SPEED", speed }),
+});
+```
+
+This is an identity function — it just returns what you pass in. It exists so TypeScript can infer the actor type and give you type-safe action definitions without manual generic annotation.
+
+### `ActorAction` Type
+
+```typescript
+type ActorAction<TMachine, TParams extends any[], TReturn> =
+    (actor: ActorRefFrom<TMachine>, ...args: TParams) => TReturn;
+```
+
+### `ActorActionParameters<T>`
+
+Like `ActionParameters` for regular actions, but strips the `actor` parameter instead of `state`:
+
+```typescript
+// If T is: (actor, speed: number) => void
+// ActorActionParameters<T> is: [speed: number]
+```
+
+## `createActorControlledStore`
+
+Convenience wrapper when actor control is your only middleware:
+
+```typescript
+function createActorControlledStore<TState, TDerived, TActions, TMachine, TActorActions>(
+    createStoreFunction: typeof createStore,
+    config: StoreConfig<TState, TDerived, TActions>,
+    actorControlOptions: ActorControlledStoreOptions<TState, TMachine, TActorActions>
+): ActorControlledStore<TState, TDerived, TActions, TMachine, TActorActions>
+```
+
+This collapses `compose(withActorControl(...))` into a single call.
+
+<Aside>
+`createStoreFunction` is passed as a parameter (rather than imported) to avoid a circular dependency between `beacon-actorstore` and `@apogeelabs/beacon`.
+</Aside>
+
+## Example
+
+```typescript
+import { createStore } from "@apogeelabs/beacon";
+import { createActor } from "xstate";
+import {
+    withActorControl,
+    defineActorActions,
+} from "@apogeelabs/beacon-actorstore";
+
+// Define your XState machine
+const timerMachine = createMachine({
+    id: "timer",
+    initial: "idle",
+    context: { elapsed: 0, running: false },
+    states: {
+        idle: {
+            on: { START: "running" },
+            entry: assign({ running: false }),
+        },
+        running: {
+            on: { PAUSE: "idle", TICK: { actions: assign({ elapsed: (ctx) => ctx.elapsed + 1 }) } },
+            entry: assign({ running: true }),
+        },
+    },
+});
+
+// Create the actor
+const actor = createActor(timerMachine);
+
+// Define typed actor actions
+const actorActions = defineActorActions<typeof timerMachine>({
+    start: (actor) => actor.send({ type: "START" }),
+    pause: (actor) => actor.send({ type: "PAUSE" }),
+});
+
+// Create the actor-controlled store
+const store = createStore(
+    withActorControl({
+        actor,
+        actorActions,
+        autoStartActor: true,
+    })({
+        initialState: { elapsed: 0, running: false },
+        derived: {
+            formattedTime: (state) => `${Math.floor(state.elapsed / 60)}:${(state.elapsed % 60).toString().padStart(2, "0")}`,
+        },
+    })
+);
+
+// Use actor actions (not regular actions)
+store.actorActions.start();
+// store.elapsed updates automatically as the actor ticks
+// store.formattedTime recomputes via MobX computed
+
+// Clean up
+store.dispose(); // unsubscribes from actor, runs all cleanup
+```
+
+## Store Instance Extensions
+
+An actor-controlled store adds two properties beyond the standard `Store` interface:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `actor` | `ActorRefFrom<TMachine>` | The XState actor reference |
+| `actorActions` | `Record<string, Function>` | Actions that send events to the actor |
+
+## Error Handling
+
+Actor action errors are routed through the `onError` callback rather than propagating unhandled. This prevents a throw inside an actor send from crashing the subscriber loop and silencing all future state updates.
+
+```typescript
+withActorControl({
+    actor,
+    actorActions,
+    onError: (error) => {
+        errorReporter.capture(error);
+    },
+})
+```
+
+If no `onError` is provided, errors are logged to `console.error`.

@@ -2,6 +2,8 @@
 
 # Beacon
 
+**[Read the full documentation](https://apogee-travel.github.io/beacon/)**
+
 ## The What and Why
 
 Beacon wraps [MobX](https://mobx.js.org/README.html) with a thin-but-opinionated store creation interface. It aims to achieve these goals:
@@ -158,6 +160,10 @@ export const todoStore = createStore<
     })
 );
 ```
+
+## Recipes
+
+See [RECIPES.md](./RECIPES.md) for integration patterns, including how to bridge Beacon stores with React Query (TanStack Query).
 
 ## Developing Beacon
 

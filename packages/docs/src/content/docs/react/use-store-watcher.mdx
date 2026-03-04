@@ -1,0 +1,145 @@
+---
+title: useStoreWatcher
+description: Watch store changes and execute a callback when selected values change.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+```typescript
+import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
+```
+
+`useStoreWatcher` sets up a MobX `reaction` inside a React component that fires a callback whenever a selected store value changes. Unlike `useStoreState`, it doesn't return a value — it gives you full control over what happens when state changes.
+
+## When to Use This
+
+Use `useStoreWatcher` when you need to react to store changes with custom logic:
+
+- Debouncing or throttling updates
+- Conditional processing before updating React state
+- Side effects that don't involve re-rendering (logging, analytics, navigation)
+- When you need the `fireImmediately` option
+
+For simple "store value → React state" bridging, [`useStoreState`](/react/use-store-state/) is more concise.
+
+## Signature
+
+```typescript
+function useStoreWatcher<TState, TDerived, TActions, T>(
+    store: Store<TState, TDerived, TActions>,
+    selector: (store: Store<TState, TDerived, TActions>) => T,
+    onChange: (value: T) => void,
+    fireImmediately?: boolean,
+): void
+```
+
+## Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `store` | `Store<TState, TDerived, TActions>` | — | The Beacon store instance |
+| `selector` | `(store) => T` | — | Function that extracts the value to watch |
+| `onChange` | `(value: T) => void` | — | Callback invoked with the new value when it changes |
+| `fireImmediately` | `boolean` | `false` | Whether to invoke `onChange` with the initial value on mount |
+
+## How It Works
+
+1. Wraps `selector` and `onChange` in `useEffectEvent` to prevent unnecessary effect re-runs when inline functions are passed
+2. Sets up a MobX `reaction` in a `useEffect`:
+   - The selector runs inside `toJS()` to strip MobX wrappers
+   - The effect uses deep comparison (`_.isEqual`) to prevent spurious callbacks when MobX returns new object references for unchanged data
+3. Registers a cleanup disposer with both the React effect and `store.registerCleanup()`
+
+<Aside>
+The `useEffectEvent` usage means you can safely pass inline functions for `selector` and `onChange` without worrying about stale closures or unnecessary re-subscriptions. This is a React 19 API.
+</Aside>
+
+## Examples
+
+### Basic usage
+
+```typescript
+import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
+
+function MyComponent({ store }) {
+    useStoreWatcher(
+        store,
+        (s) => s.notifications,
+        (notifications) => {
+            if (notifications.length > 0) {
+                showToast(notifications[notifications.length - 1]);
+            }
+        }
+    );
+
+    // ...
+}
+```
+
+### With `fireImmediately`
+
+```typescript
+const [searchParams, setSearchParams] = useState({});
+
+useStoreWatcher(
+    store,
+    (s) => s.searchParams,
+    (params) => {
+        setSearchParams(params);
+    },
+    true // fire immediately to pick up initial params
+);
+```
+
+### Debounced updates
+
+```typescript
+import { useMemo } from "react";
+import { debounce } from "lodash";
+
+function useSearchBridge(store: SearchStore) {
+    const [debouncedParams, setDebouncedParams] = useState({});
+
+    const debouncedSet = useMemo(
+        () => debounce(setDebouncedParams, 300),
+        []
+    );
+
+    useStoreWatcher(
+        store,
+        (s) => s.searchParams,
+        (params) => {
+            // Custom logic: debounce the update
+            debouncedSet(params);
+        },
+        true
+    );
+
+    // Use debouncedParams for React Query
+    // ...
+}
+```
+
+### Conditional updates
+
+```typescript
+useStoreWatcher(
+    store,
+    (s) => ({ term: s.searchTerm, filters: s.activeFilters }),
+    (value) => {
+        // Only update if the search term is long enough
+        if (value.term.length >= 3 || value.term.length === 0) {
+            setSearchParams(value);
+        }
+    }
+);
+```
+
+## Cleanup
+
+The reaction is cleaned up in two ways:
+
+1. **React effect cleanup**: When the component unmounts or dependencies change
+2. **Store disposal**: The reaction is registered via `store.registerCleanup()`, so disposing the store also tears it down
+
+This dual cleanup ensures no leaked subscriptions regardless of whether the component or the store is destroyed first.

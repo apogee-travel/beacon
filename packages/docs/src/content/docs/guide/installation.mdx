@@ -1,0 +1,130 @@
+---
+title: Installation
+description: Install Beacon and its companion packages.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+## Core Package
+
+Beacon requires MobX as a peer dependency.
+
+<Tabs>
+    <TabItem label="npm">
+    ```bash
+    npm install @apogeelabs/beacon mobx
+    ```
+    </TabItem>
+    <TabItem label="yarn">
+    ```bash
+    yarn add @apogeelabs/beacon mobx
+    ```
+    </TabItem>
+    <TabItem label="pnpm">
+    ```bash
+    pnpm add @apogeelabs/beacon mobx
+    ```
+    </TabItem>
+</Tabs>
+
+## React Utilities
+
+For React projects, add the hooks package:
+
+<Tabs>
+    <TabItem label="npm">
+    ```bash
+    npm install @apogeelabs/beacon-react-utils
+    ```
+    </TabItem>
+    <TabItem label="yarn">
+    ```bash
+    yarn add @apogeelabs/beacon-react-utils
+    ```
+    </TabItem>
+    <TabItem label="pnpm">
+    ```bash
+    pnpm add @apogeelabs/beacon-react-utils
+    ```
+    </TabItem>
+</Tabs>
+
+For component-level MobX reactivity, you'll also want `mobx-react-lite`:
+
+<Tabs>
+    <TabItem label="npm">
+    ```bash
+    npm install mobx-react-lite
+    ```
+    </TabItem>
+    <TabItem label="yarn">
+    ```bash
+    yarn add mobx-react-lite
+    ```
+    </TabItem>
+    <TabItem label="pnpm">
+    ```bash
+    pnpm add mobx-react-lite
+    ```
+    </TabItem>
+</Tabs>
+
+## Browser Storage Middleware
+
+For localStorage/sessionStorage persistence:
+
+<Tabs>
+    <TabItem label="npm">
+    ```bash
+    npm install @apogeelabs/beacon-browserstorage
+    ```
+    </TabItem>
+    <TabItem label="yarn">
+    ```bash
+    yarn add @apogeelabs/beacon-browserstorage
+    ```
+    </TabItem>
+    <TabItem label="pnpm">
+    ```bash
+    pnpm add @apogeelabs/beacon-browserstorage
+    ```
+    </TabItem>
+</Tabs>
+
+## Actor Store (Experimental)
+
+For XState actor integration:
+
+<Tabs>
+    <TabItem label="npm">
+    ```bash
+    npm install @apogeelabs/beacon-actorstore xstate
+    ```
+    </TabItem>
+    <TabItem label="yarn">
+    ```bash
+    yarn add @apogeelabs/beacon-actorstore xstate
+    ```
+    </TabItem>
+    <TabItem label="pnpm">
+    ```bash
+    pnpm add @apogeelabs/beacon-actorstore xstate
+    ```
+    </TabItem>
+</Tabs>
+
+## Requirements
+
+- **Node.js** 18+
+- **TypeScript** 5.0+ (recommended, not required)
+- **MobX** 6.x
+- **React** 19+ (for `beacon-react-utils` — uses `useEffectEvent`)
+
+## Package Summary
+
+| Package | Purpose | Required Peers |
+|---------|---------|----------------|
+| `@apogeelabs/beacon` | Core store, compose, types | `mobx` |
+| `@apogeelabs/beacon-browserstorage` | localStorage/sessionStorage persistence | `@apogeelabs/beacon`, `mobx` |
+| `@apogeelabs/beacon-react-utils` | `useStoreState`, `useStoreWatcher` hooks | `@apogeelabs/beacon`, `mobx`, `react` |
+| `@apogeelabs/beacon-actorstore` | XState actor integration | `@apogeelabs/beacon`, `mobx`, `xstate` |

@@ -9,7 +9,6 @@ Beacon is a reactive state management library built on MobX observables, using a
 | Core | `@apogeelabs/beacon` | 1.0.0 | Stable | `mobx ^6.13.7` |
 | Browser Storage | `@apogeelabs/beacon-browserstorage` | 1.0.0 | Stable | `@apogeelabs/beacon`, `mobx ^6.13.7` |
 | React Utils | `@apogeelabs/beacon-react-utils` | 1.0.0 | Stable | `@apogeelabs/beacon`, `mobx ^6.13.7`, `react ^19.2.3`, `lodash 4.17.16` |
-| React Query | `@apogeelabs/beacon-reactquery` | 1.0.0 | **Deprecated — Do NOT use** | — |
 | Actor Store | `@apogeelabs/beacon-actorstore` | 1.0.0 | **PoC/Experimental** | `@apogeelabs/beacon`, `mobx ^6.13.7`, `xstate ^5.19.2` |
 
 ## Core API: `createStore`
@@ -229,9 +228,34 @@ function useStoreWatcher<
 - Also cleans up on component unmount via the `useEffect` return
 - `selector` and `onChange` are wrapped with `useEffectEvent` — inline functions are safe, no stale closures
 
-## React Query Middleware — DEPRECATED
+## React Integration: `useStoreState`
 
-⚠️ `@apogeelabs/beacon-reactquery` exists in the repo but is a fundamentally flawed approach. **Do NOT use it. Do not generate code using it. Do not suggest it.**
+Package: `@apogeelabs/beacon-react-utils`
+
+A React hook that subscribes to a Beacon store and returns a selected value as React state. Built on `useStoreWatcher` internally.
+
+**When to use:** Use `useStoreState` when you need a store value to participate in React's state lifecycle — for example, to drive React Query parameters or to pass into hooks that don't understand MobX observables. For normal component rendering, prefer `observer` from `mobx-react-lite` and read store values directly.
+
+### Full Signature
+
+```typescript
+function useStoreState<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
+    T,
+>(
+    store: Store<TState, TDerived, TActions>,
+    selector: (store: Store<TState, TDerived, TActions>) => T,
+): T;
+```
+
+### Behavior
+
+- Initializes `useState` with `toJS(selector(store))` to get a plain JS snapshot
+- Sets up `useStoreWatcher` with the selector and `setValue` as the onChange callback
+- Returns the current value, which updates when the selected store slice changes
+- Deep comparison via `lodash.isEqual` — won't trigger re-renders for structurally identical values
 
 ## Actor Store (PoC/Experimental)
 
@@ -561,10 +585,7 @@ import { browserStorageMiddleware } from "@apogeelabs/beacon-browserstorage";
 import type { BrowserStorageOptions } from "@apogeelabs/beacon-browserstorage";
 
 // React Utils
-import { useStoreWatcher } from "@apogeelabs/beacon-react-utils";
-
-// React Query — DEPRECATED, do not use
-// import from "@apogeelabs/beacon-reactquery" — DO NOT IMPORT
+import { useStoreWatcher, useStoreState } from "@apogeelabs/beacon-react-utils";
 
 // Actor Store (Experimental, in development)
 import {

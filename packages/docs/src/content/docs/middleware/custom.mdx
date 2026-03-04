@@ -1,0 +1,284 @@
+---
+title: Writing Custom Middleware
+description: How to build your own Beacon middleware from scratch.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Beacon middleware follows a simple, predictable pattern. If you've used Express middleware or Redux middleware, the mental model is similar — but the mechanism is different. Middleware transforms the store *configuration* before `createStore` processes it.
+
+## The Pattern
+
+Every middleware is a curried function with this shape:
+
+```typescript
+(options: TOptions) => (config: StoreConfig) => StoreConfig
+```
+
+<Steps>
+1. **Outer function**: Captures middleware-specific options. Called once at composition time.
+2. **Inner function**: Receives the current `StoreConfig`, transforms it, and returns the modified config. Called once per store creation.
+</Steps>
+
+## Walkthrough: Logging Middleware
+
+Let's build a middleware that logs every action call.
+
+### Step 1: Define the Options
+
+```typescript
+interface LoggerOptions {
+    /** Name prefix for log messages */
+    prefix?: string;
+    /** Custom logger (defaults to console) */
+    logger?: Pick<Console, "log" | "group" | "groupEnd">;
+}
+```
+
+### Step 2: Write the Middleware
+
+```typescript
+import type { StoreConfig, BeaconState, BeaconDerived, BeaconActions } from "@apogeelabs/beacon";
+
+function loggerMiddleware<
+    TState extends BeaconState,
+    TDerived extends BeaconDerived<TState>,
+    TActions extends BeaconActions<TState>,
+>(options: LoggerOptions = {}) {
+    const { prefix = "store", logger = console } = options;
+
+    return (config: StoreConfig<TState, TDerived, TActions>) => {
+        const originalActions = config.actions || {};
+        const wrappedActions: Record<string, any> = {};
+
+        // Wrap each action with logging
+        for (const key in originalActions) {
+            wrappedActions[key] = (state: TState, ...args: any[]) => {
+                logger.group(`[${prefix}] ${key}`);
+                logger.log("args:", args);
+
+                const result = originalActions[key](state, ...args);
+
+                logger.log("result:", result);
+                logger.groupEnd();
+
+                return result;
+            };
+        }
+
+        return {
+            ...config,
+            actions: wrappedActions as typeof config.actions,
+        };
+    };
+}
+```
+
+### Step 3: Use It
+
+```typescript
+import { createStore, compose } from "@apogeelabs/beacon";
+
+const store = createStore(
+    compose(
+        loggerMiddleware({ prefix: "todo" })
+    )({
+        initialState: { items: [] },
+        actions: {
+            addItem: (state, text: string) => {
+                state.items.push({ text });
+            },
+        },
+    })
+);
+
+store.actions.addItem("Buy milk");
+// Console output:
+// [todo] addItem
+//   args: ["Buy milk"]
+//   result: undefined
+```
+
+## Common Middleware Patterns
+
+### Hydrating Initial State
+
+Read from an external source and merge into `initialState`:
+
+```typescript
+function hydrateMiddleware(options: { getData: () => Record<string, any> }) {
+    return (config) => {
+        const data = options.getData();
+        return {
+            ...config,
+            initialState: { ...config.initialState, ...data },
+        };
+    };
+}
+```
+
+### Adding Derived Values
+
+Inject computed properties:
+
+```typescript
+function timestampMiddleware() {
+    return (config) => ({
+        ...config,
+        derived: {
+            ...config.derived,
+            lastModified: () => new Date().toISOString(),
+        },
+    });
+}
+```
+
+### Adding Actions
+
+Inject new actions alongside existing ones:
+
+```typescript
+function resetMiddleware() {
+    return (config) => {
+        const snapshot = { ...config.initialState };
+
+        return {
+            ...config,
+            actions: {
+                ...config.actions,
+                reset: (state) => {
+                    Object.assign(state, snapshot);
+                },
+            },
+        };
+    };
+}
+```
+
+### Post-Creation Side Effects
+
+Use `onStoreCreated` for anything that needs the live store instance:
+
+```typescript
+import { reaction } from "mobx";
+
+function analyticsMiddleware(options: { trackEvent: (name: string, data: any) => void }) {
+    return (config) => {
+        // Capture the existing hook
+        const originalOnStoreCreated = config.onStoreCreated;
+
+        return {
+            ...config,
+            onStoreCreated: (store) => {
+                // Call existing hook first
+                if (originalOnStoreCreated) {
+                    originalOnStoreCreated(store);
+                }
+
+                // Set up a reaction
+                const disposer = reaction(
+                    () => store.getStateSnapshot(),
+                    (snapshot) => {
+                        options.trackEvent("state_change", snapshot);
+                    }
+                );
+
+                // Register cleanup
+                store.registerCleanup(disposer);
+            },
+        };
+    };
+}
+```
+
+## The `onStoreCreated` Chain
+
+<Aside type="danger">
+This is the #1 source of middleware bugs. If you use `onStoreCreated`, you **must** preserve the existing callback.
+</Aside>
+
+The correct pattern:
+
+```typescript
+return (config) => {
+    const originalOnStoreCreated = config.onStoreCreated;
+
+    return {
+        ...config,
+        onStoreCreated: (store) => {
+            // 1. Call existing hook first
+            if (originalOnStoreCreated) {
+                originalOnStoreCreated(store);
+            }
+
+            // 2. Then do your thing
+            // ...
+        },
+    };
+};
+```
+
+Why "existing first"? Because middleware earlier in the `compose` chain may have set up state or subscriptions that your middleware depends on. Calling the original first ensures the chain runs in the expected order.
+
+## TypeScript: The `MiddlewareFunction` Type
+
+Beacon exports a type helper:
+
+```typescript
+import type { MiddlewareFunction } from "@apogeelabs/beacon";
+
+const myMiddleware: MiddlewareFunction<MyState, MyDerived, MyActions, MyOptions> =
+    (options) => (config) => {
+        // ...
+        return config;
+    };
+```
+
+In practice, many middleware use generic type parameters to work with any store shape, so you'll often use the constraint types (`BeaconState`, `BeaconDerived`, `BeaconActions`) directly.
+
+## Testing Middleware
+
+Middleware is a pure function (config in, config out), which makes it straightforward to test:
+
+```typescript
+describe("loggerMiddleware", () => {
+    it("wraps actions with logging", () => {
+        const mockLogger = { log: jest.fn(), group: jest.fn(), groupEnd: jest.fn() };
+        const middleware = loggerMiddleware({ logger: mockLogger });
+
+        const config = {
+            initialState: { count: 0 },
+            actions: {
+                increment: (state) => { state.count += 1; },
+            },
+        };
+
+        const result = middleware(config);
+
+        // The action should still exist
+        expect(result.actions.increment).toBeDefined();
+
+        // Call it with a mock state
+        const mockState = { count: 0 };
+        result.actions.increment(mockState);
+
+        // Logger should have been called
+        expect(mockLogger.group).toHaveBeenCalledWith("[store] increment");
+    });
+});
+```
+
+For middleware that uses `onStoreCreated`, test the full lifecycle by passing the config through `createStore`:
+
+```typescript
+it("sets up reaction on store creation", () => {
+    const store = createStore(myMiddleware(opts)({
+        initialState: { value: 0 },
+    }));
+
+    // Assert the reaction was set up
+    // ...
+
+    store.dispose();
+});
+```

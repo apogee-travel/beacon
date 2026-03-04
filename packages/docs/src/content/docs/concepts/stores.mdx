@@ -1,0 +1,144 @@
+---
+title: Stores
+description: How Beacon stores work and what they give you.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+A store is the fundamental unit in Beacon. It's a reactive container created by `createStore()` that holds observable state, computed derived values, and actions — all wired up with MobX under the hood.
+
+## Anatomy of a Store
+
+```typescript
+import { createStore } from "@apogeelabs/beacon";
+
+const store = createStore({
+    initialState: {
+        todos: [],
+        filter: "all",
+    },
+    derived: {
+        filteredTodos: (state) => {
+            if (state.filter === "all") return state.todos;
+            const done = state.filter === "completed";
+            return state.todos.filter((t) => t.completed === done);
+        },
+        count: (state) => state.todos.length,
+    },
+    actions: {
+        addTodo: (state, text: string) => {
+            state.todos.push({ text, completed: false });
+        },
+        setFilter: (state, filter: string) => {
+            state.filter = filter;
+        },
+    },
+});
+```
+
+The config object has four parts:
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `initialState` | Yes | Plain object. Becomes MobX `observable`. |
+| `derived` | No | Functions that compute values from state. Become MobX `computed`. |
+| `actions` | No | Functions that mutate state. Wrapped in MobX `action`. |
+| `onStoreCreated` | No | Lifecycle hook called after the store is fully constructed. |
+
+## Accessing State and Derived Values
+
+State and derived values live at the top level of the store instance. No selectors, no getters — just property access:
+
+```typescript
+console.log(store.todos);        // observable array
+console.log(store.filter);       // "all"
+console.log(store.filteredTodos); // computed, recalculates when deps change
+console.log(store.count);        // computed
+```
+
+Because derived values are MobX `computed` properties, they only recompute when the specific state they read actually changes. If you update `filter`, `filteredTodos` recalculates but `count` doesn't.
+
+## Calling Actions
+
+Actions are namespaced under `store.actions`:
+
+```typescript
+store.actions.addTodo("Buy milk");
+store.actions.setFilter("completed");
+```
+
+This is a deliberate design choice. Separating actions from state makes it obvious at a glance what's a read vs. a write. When you see `store.actions.something()`, you know state is about to change.
+
+<Aside type="tip">
+Actions receive the observable state as their first argument automatically — you never pass it yourself. Any additional arguments you define are what callers provide.
+</Aside>
+
+## What MobX Does Under the Hood
+
+When `createStore` runs, it:
+
+1. Wraps `initialState` in `observable()` — every property becomes reactive
+2. Creates a `computed()` for each `derived` entry, exposed as a getter on the store
+3. Wraps each `actions` entry in `action()` — mutations are batched into a single transaction, preventing intermediate renders
+4. Calls `onStoreCreated(store)` if provided
+
+You don't need to think about `makeObservable`, `makeAutoObservable`, or any MobX decorators. Beacon handles the wiring.
+
+## Store Instance API
+
+Beyond state, derived values, and actions, every store instance has:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `actions` | `object` | Namespaced action methods |
+| `getStateSnapshot()` | `function` | Returns a plain JS copy of the current state |
+| `registerCleanup(fn)` | `function` | Registers a function to run on disposal |
+| `dispose()` | `function` | Tears down the store and runs all cleanup functions |
+| `isDisposed` | `boolean` | Whether the store has been disposed |
+
+See the [API Reference](/api/create-store/) for full details on each.
+
+## The `onStoreCreated` Hook
+
+This lifecycle callback runs after the store is fully assembled — state is observable, derived values are computed, actions are wired up. It's the right place for:
+
+- Setting up MobX `reaction`s or `autorun`s
+- Registering cleanup functions
+- Performing initial side effects
+
+```typescript
+import { autorun } from "mobx";
+
+const store = createStore({
+    initialState: { count: 0 },
+    actions: {
+        increment: (state) => { state.count += 1; },
+    },
+    onStoreCreated: (store) => {
+        const disposer = autorun(() => {
+            console.log(`Count is now: ${store.count}`);
+        });
+        store.registerCleanup(disposer);
+    },
+});
+```
+
+<Aside type="caution">
+If you're writing middleware that uses `onStoreCreated`, always capture and call the existing callback before adding your own. Failing to do this silently drops other middleware's post-creation hooks. See [Writing Custom Middleware](/middleware/custom/) for the pattern.
+</Aside>
+
+## Key Collision Prevention
+
+Beacon validates that no `derived` key shadows a state key:
+
+```typescript
+// This throws: "Derived key 'count' conflicts with state property of the same name"
+const store = createStore({
+    initialState: { count: 0 },
+    derived: {
+        count: (state) => state.count * 2, // conflict
+    },
+});
+```
+
+Pick distinct names. If your derived value is based on `count`, call it `doubledCount` or `countDisplay`.

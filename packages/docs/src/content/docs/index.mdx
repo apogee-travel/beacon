@@ -1,0 +1,48 @@
+---
+title: Beacon
+description: Composable MobX-based state management with middleware.
+template: splash
+hero:
+    tagline: Composable MobX-based state management with middleware. Observable state, your way.
+    image:
+        dark: ../../assets/icon-dark.svg
+        light: ../../assets/icon-light.svg
+    actions:
+        - text: Get Started
+          link: /beacon/guide/getting-started/
+          icon: right-arrow
+          variant: primary
+        - text: View on GitHub
+          link: https://github.com/apogee-travel/beacon
+          icon: external
+          variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+    <Card icon="seti:typescript" title="TypeScript-First">
+        Full type inference for state, derived properties, and actions. No generics gymnastics
+        required.
+    </Card>
+    <Card icon="puzzle" title="Composable Middleware">
+        Extend stores with middleware composed left-to-right. Browser storage, persistence, actor
+        models — plug in what you need.
+    </Card>
+    <Card icon="random" title="MobX-Powered Reactivity">
+        Built on MobX observables, computed values, and actions. Fine-grained reactivity without the
+        boilerplate.
+    </Card>
+    <Card icon="rocket" title="Minimal Ceremony">
+        Define state, derived values, and actions. That's it. No reducers, no dispatchers, no action
+        types.
+    </Card>
+    <Card icon="approve-check-circle" title="Lifecycle & Cleanup">
+        Built-in disposal with cleanup registration. Middleware hooks into store creation and
+        teardown automatically.
+    </Card>
+    <Card icon="setting" title="React Integration">
+        Purpose-built hooks — useStoreWatcher and useStoreState — for efficient React bindings with
+        automatic subscription management.
+    </Card>
+</CardGrid>

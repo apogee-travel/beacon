@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable import/no-anonymous-default-export */
 export default {};
 
 const mockMobx = {

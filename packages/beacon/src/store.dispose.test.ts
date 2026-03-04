@@ -138,7 +138,7 @@ describe("store.dispose()", () => {
     describe("when an array state property is observable during dispose()", () => {
         let mockClear: jest.Mock;
 
-        beforeEach(() => {
+        beforeEach(async () => {
             mockClear = jest.fn();
             const arrayWithClear = [1, 2, 3] as any;
             arrayWithClear.clear = mockClear;
@@ -149,7 +149,7 @@ describe("store.dispose()", () => {
             }));
             mockIsObservable.mockReturnValue(true);
 
-            const mod = require("./store");
+            const mod = await import("./store");
             store = mod.createStore({
                 initialState: { tags: [1, 2, 3], count: 0 },
             });

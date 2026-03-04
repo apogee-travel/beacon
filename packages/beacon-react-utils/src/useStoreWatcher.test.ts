@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+export default {};
+
 const mockMobX = {
     reaction: jest.fn(),
     toJS: jest.fn(),
@@ -183,6 +185,41 @@ describe("useStoreWatcher", () => {
                     expect(onChange).not.toHaveBeenCalled();
                 });
             });
+        });
+    });
+
+    describe("when fireImmediately is true", () => {
+        beforeEach(async () => {
+            mockReact.useEffect.mockImplementationOnce(() => {
+                // no-op
+            });
+            const mod = await import("./useStoreWatcher");
+            mod.useStoreWatcher(store, selector, onChange, true);
+        });
+
+        it("should pass fireImmediately: true to the reaction", () => {
+            expect(mockReact.useEffect).toHaveBeenCalledTimes(1);
+            expect(mockReact.useEffect).toHaveBeenCalledWith(expect.any(Function), [store, true]);
+        });
+    });
+
+    describe("when the useEffect executes with fireImmediately true", () => {
+        beforeEach(async () => {
+            mockReact.useEffect.mockImplementationOnce(cb => {
+                cb();
+            });
+            mockMobX.reaction.mockReturnValueOnce(jest.fn());
+            const mod = await import("./useStoreWatcher");
+            mod.useStoreWatcher(store, selector, onChange, true);
+        });
+
+        it("should create the reaction with fireImmediately: true", () => {
+            expect(mockMobX.reaction).toHaveBeenCalledTimes(1);
+            expect(mockMobX.reaction).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.any(Function),
+                { fireImmediately: true }
+            );
         });
     });
 });

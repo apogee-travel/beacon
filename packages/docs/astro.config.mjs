@@ -3,6 +3,8 @@ import starlight from "@astrojs/starlight";
 import starlightThemeNova from "starlight-theme-nova";
 
 export default defineConfig({
+    site: "https://apogee-travel.github.io",
+    base: "/beacon",
     vite: {
         ssr: {
             noExternal: ["nanoid", "zod"],

@@ -14,7 +14,8 @@
         "test": "turbo run test",
         "changeset": "changeset",
         "version-packages": "changeset version",
-        "release": "turbo run build && changeset publish"
+        "release": "turbo run build && changeset publish",
+        "checks": "turbo run lint && turbo run test && turbo run build"
     },
     "devDependencies": {
         "@apogeelabs/the-agency": "0.4.0",

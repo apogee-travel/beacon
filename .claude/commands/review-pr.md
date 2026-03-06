@@ -85,6 +85,7 @@ Group changed files by top-level directory. If the repo uses workspaces (check f
 Analyze **per-commit**. For each commit, produce a narrative block with:
 
 1. **The Mental Model Shift** — plain English explanation of how the codebase's story changed. Focus on "why" and "so what," not restating the diff. Highlight:
+
     - Architectural shifts or new patterns introduced
     - Patterns retired or approaches abandoned
     - Code that appears orphaned, half-finished, or disconnected

@@ -82,15 +82,15 @@ const store = createStore<State, Derived, Actions>({
     },
     derived: {
         // This derived value is what the bridge watches
-        searchParams: (state) => ({
+        searchParams: state => ({
             name: state.searchTerm || undefined,
             category: Array.from(state.selectedFilters).join(",") || undefined,
         }),
     },
     actions: {
         setSearchTerm: (state, term: string) => {
-            state.items = [];          // clear stale results
-            state.isLoading = true;    // optimistic loading state
+            state.items = []; // clear stale results
+            state.isLoading = true; // optimistic loading state
             state.searchTerm = term;
         },
         appendItems: (state, all: Item[]) => {
@@ -119,24 +119,22 @@ function useSearchBridge(store: SearchStore, repository: SearchRepository) {
     // Convert store's derived searchParams to React state.
     // When the store's searchParams change, this triggers a re-render,
     // which gives React Query new query keys, which triggers a refetch.
-    const searchParams = useStoreState(store, (s) => s.searchParams);
+    const searchParams = useStoreState(store, s => s.searchParams);
 
-    const { data, fetchNextPage, hasNextPage, isLoading, isError } =
-        useInfiniteQuery({
-            queryKey: ["search", searchParams],
-            queryFn: ({ pageParam = 0 }) =>
-                repository.search({ ...searchParams, offset: pageParam }),
-            getNextPageParam: (lastPage) => {
-                const { offset, limit, total } = lastPage.pagination;
-                return offset + limit < total ? offset + limit : undefined;
-            },
-            initialPageParam: 0,
-        });
+    const { data, fetchNextPage, hasNextPage, isLoading, isError } = useInfiniteQuery({
+        queryKey: ["search", searchParams],
+        queryFn: ({ pageParam = 0 }) => repository.search({ ...searchParams, offset: pageParam }),
+        getNextPageParam: lastPage => {
+            const { offset, limit, total } = lastPage.pagination;
+            return offset + limit < total ? offset + limit : undefined;
+        },
+        initialPageParam: 0,
+    });
 
     // DIRECTION 2: API -> Store
     useEffect(() => {
         if (data) {
-            const allItems = data.pages.flatMap((page) => page.items);
+            const allItems = data.pages.flatMap(page => page.items);
             store.actions.appendItems(allItems);
         }
     }, [data]);
@@ -161,8 +159,8 @@ function useSearchBridge(store: SearchStore) {
 
     useStoreWatcher(
         store,
-        (s) => s.searchParams,
-        (params) => {
+        s => s.searchParams,
+        params => {
             // Custom logic here — debounce, validate, transform, etc.
             setSearchParams(params);
         },

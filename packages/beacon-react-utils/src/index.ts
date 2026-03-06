@@ -2,3 +2,4 @@
 
 export * from "./useStoreWatcher";
 export * from "./useStoreState";
+export * from "./useEffectEventShim";

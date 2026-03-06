@@ -90,7 +90,7 @@ function useStoreState<
     T,
 >(
     store: Store<TState, TDerived, TActions>,
-    selector: (store: Store<TState, TDerived, TActions>) => T,
+    selector: (store: Store<TState, TDerived, TActions>) => T
 ): T;
 ```
 

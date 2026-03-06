@@ -1,15 +1,7 @@
 // @apogeelabs/beacon store.ts
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-    action,
-    computed,
-    IComputedValue,
-    isObservable,
-    observable,
-    runInAction,
-    toJS,
-} from "mobx";
+import { action, computed, IComputedValue, observable, toJS } from "mobx";
 import type {
     ActionParameters,
     BeaconActions,
@@ -34,7 +26,7 @@ export function createStore<
     TActions extends BeaconActions<TState> = EmptyActions,
 >(config: StoreConfig<TState, TDerived, TActions>): Store<TState, TDerived, TActions> {
     const initialStateKeys = new Set(Object.keys(config.initialState));
-    const derivedKeys = Object.keys(config.derived || {});
+    const derivedKeys = Object.keys(config.derived ?? {});
 
     // Prevent naming conflicts between state and derived values
     for (const key of derivedKeys) {
@@ -117,6 +109,8 @@ export function createStore<
         delete snapshot.isDisposed;
         delete snapshot.dispose;
         delete snapshot.getStateSnapshot;
+        delete snapshot.registerCleanup;
+        delete snapshot.unregisterCleanup;
 
         return snapshot;
     };
@@ -139,6 +133,20 @@ export function createStore<
         cleanupFunctions.push(cleanupFn);
     };
 
+    // Removes a previously registered cleanup function by reference.
+    // Matching by reference is intentional — callers hold the same closure they registered.
+    const unregisterCleanup = (cleanupFn: CleanupFunction) => {
+        if ((store as any).isDisposed) {
+            // Store already disposed — cleanup list has been drained, nothing to remove
+            return;
+        }
+
+        const idx = cleanupFunctions.indexOf(cleanupFn);
+        if (idx !== -1) {
+            cleanupFunctions.splice(idx, 1);
+        }
+    };
+
     // Create the dispose method
     const dispose = () => {
         // Prevent multiple disposals
@@ -159,48 +167,21 @@ export function createStore<
             }
         }
 
-        // runInAction is required because we're mutating observable state — MobX enforces that
-        // all observable writes happen inside an action to maintain transactional consistency
-        // and prevent partially-updated state from being observed mid-disposal.
-        runInAction(() => {
-            // Explicitly nullify state properties and computed refs to break reference cycles.
-            // Observable objects hold internal MobX bookkeeping that won't GC on its own
-            // without these being cleared first.
-            for (const key of initialStateKeys) {
-                try {
-                    const value = (store as any)[key];
-                    // Clear arrays if possible
-                    if (
-                        Array.isArray(value) &&
-                        isObservable(value) &&
-                        typeof (value as any).clear === "function"
-                    ) {
-                        (value as any).clear();
-                    }
-                    (store as any)[key] = undefined;
-                } catch (error) {
-                    console.warn(`Error disposing property '${key}':`, error);
-                    // Fallback - set to undefined
-                    try {
-                        (store as any)[key] = undefined;
-                    } catch (e) {
-                        console.warn(`Failed to set ${key} to undefined:`, e);
-                    }
-                }
-            }
+        // Replace actions with no-ops — calling an action on a disposed store is always a bug.
+        // This is a plain JS assignment, not an observable mutation, so no runInAction needed.
+        for (const key in actions) {
+            (actions as any)[key] = () => {
+                console.warn(`Cannot execute action '${key}': store has been disposed`);
+            };
+        }
 
-            // Make actions no-ops to prevent calls to disposed store
-            for (const key in actions) {
-                (actions as any)[key] = () => {
-                    console.warn(`Cannot execute action '${key}': store has been disposed`);
-                };
-            }
-
-            // Clear all references
-            for (const key in computedProperties) {
-                computedProperties[key] = null as any;
-            }
-        });
+        // Clear computed property references from the internal record.
+        // Note: the getter closures still hold their own references to the computed values,
+        // so this alone won't GC them while the store is alive. It does drop the extra
+        // reference from this private record, keeping the disposal cleanup thorough.
+        for (const key in computedProperties) {
+            computedProperties[key] = null as any;
+        }
     };
 
     // Add actions and methods to the store
@@ -218,6 +199,12 @@ export function createStore<
 
     Object.defineProperty(store, "registerCleanup", {
         value: registerCleanup,
+        enumerable: true,
+        configurable: true,
+    });
+
+    Object.defineProperty(store, "unregisterCleanup", {
+        value: unregisterCleanup,
         enumerable: true,
         configurable: true,
     });

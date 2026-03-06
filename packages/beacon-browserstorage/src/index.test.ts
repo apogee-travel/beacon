@@ -171,7 +171,10 @@ describe("beacon-browserstorage", () => {
             origCfg = { initialState: { warpCore: "offline" } };
             const mod = await import("./index");
             const { browserStorageMiddleware } = mod;
-            storeCfg = browserStorageMiddleware({ key: "noSavedData", storageType: "local" } as any)(origCfg);
+            storeCfg = browserStorageMiddleware({
+                key: "noSavedData",
+                storageType: "local",
+            } as any)(origCfg);
             storeCfg.onStoreCreated(mockStoreInstance);
         });
 

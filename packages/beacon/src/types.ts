@@ -128,6 +128,12 @@ export type Store<
     registerCleanup: (cleanupFn: CleanupFunction) => void;
 
     /**
+     * Removes a previously registered cleanup function.
+     * If the function was not registered, this is a no-op.
+     */
+    unregisterCleanup: (cleanupFn: CleanupFunction) => void;
+
+    /**
      * Disposes of the store, cleaning up all resources and preventing memory leaks
      * - Calls all middleware cleanup functions
      * - Cleans up MobX-specific artifacts

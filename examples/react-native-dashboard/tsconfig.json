@@ -1,0 +1,19 @@
+{
+    "extends": "expo/tsconfig.base",
+    "compilerOptions": {
+        "strict": true,
+        "paths": {
+            "@/*": ["./src/*"],
+            "@apogeelabs/beacon": ["../../packages/beacon/src/index.ts"],
+            "@apogeelabs/beacon-react-utils": ["../../packages/beacon-react-utils/src/index.ts"]
+        }
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        ".expo/types/**/*.d.ts",
+        "expo-env.d.ts",
+        "nativewind-env.d.ts",
+        ".expo/types/**/*.ts"
+    ]
+}

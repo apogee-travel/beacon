@@ -209,6 +209,7 @@ Before writing any test code, you MUST perform a systematic branch analysis of t
 ### The Process
 
 1. **Read the source file** and identify every branch point:
+
     - `if`/`else if`/`else` blocks
     - `switch` cases (including `default`)
     - Ternary expressions

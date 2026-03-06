@@ -373,7 +373,7 @@ describe("clients > customers-web > src > pages > search > useAnimationClassesV3
         origSetTimeout = global.setTimeout;
         origClearTimeout = global.clearTimeout;
         // @ts-ignore
-        global.setTimeout = jest.fn().mockImplementation((cb) => {
+        global.setTimeout = jest.fn().mockImplementation(cb => {
             cb();
             return "timeoutId";
         });
@@ -387,13 +387,13 @@ describe("clients > customers-web > src > pages > search > useAnimationClassesV3
         setMapTransitionStatus = jest.fn();
         mockReact.useState.mockReturnValueOnce([mapTransitionStatus, setMapTransitionStatus]);
         mockUseSearchParamsStore.mockReturnValue(mockSearchParamsStore);
-        mockReact.useMemo.mockImplementationOnce((cb) => {
+        mockReact.useMemo.mockImplementationOnce(cb => {
             return cb();
         });
-        mockReact.useMemo.mockImplementationOnce((cb) => {
+        mockReact.useMemo.mockImplementationOnce(cb => {
             return cb();
         });
-        mockReact.useMemo.mockImplementationOnce((cb) => {
+        mockReact.useMemo.mockImplementationOnce(cb => {
             return cb();
         });
         mockReact.useCallback.mockImplementationOnce(() => {
@@ -497,7 +497,7 @@ describe("clients > customers-web > src > pages > search > useAnimationClassesV3
     describe("with the expandMap callback", () => {
         beforeEach(async () => {
             mockReact.useCallback.mockReset();
-            mockReact.useCallback.mockImplementationOnce((cb) => {
+            mockReact.useCallback.mockImplementationOnce(cb => {
                 cb()();
                 return "expandMap";
             });
@@ -528,7 +528,7 @@ describe("clients > customers-web > src > pages > search > useAnimationClassesV3
                 // no-op
                 return "expandMap";
             });
-            mockReact.useCallback.mockImplementationOnce((cb) => {
+            mockReact.useCallback.mockImplementationOnce(cb => {
                 cb()();
                 return "collapseMap";
             });

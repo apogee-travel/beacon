@@ -29,7 +29,7 @@ export function useStoreState<
     T,
 >(
     store: Store<TState, TDerived, TActions>,
-    selector: (store: Store<TState, TDerived, TActions>) => T,
+    selector: (store: Store<TState, TDerived, TActions>) => T
 ): T {
     // Initializer function so the selector only runs once on mount, not on every render
     const [value, setValue] = useState<T>(() => toJS(selector(store)));

@@ -3,7 +3,9 @@
     "compilerOptions": {
         "strict": true,
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": ["./src/*"],
+            "@apogeelabs/beacon": ["../../packages/beacon/src/index.ts"],
+            "@apogeelabs/beacon-react-utils": ["../../packages/beacon-react-utils/src/index.ts"]
         }
     },
     "include": [

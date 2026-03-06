@@ -49,6 +49,7 @@ describe("store", () => {
                 foo: "bar",
                 getStateSnapshot: expect.any(Function),
                 registerCleanup: expect.any(Function),
+                unregisterCleanup: expect.any(Function),
                 dispose: expect.any(Function),
             });
         });

@@ -284,7 +284,10 @@ describe("beacon-actorstore", () => {
                     initialState: { items: [] as string[] },
                     actions: { setItems: originalSetItems },
                 };
-                const middleware = withActorControl({ actor: mockActor, allowRegularActions: true });
+                const middleware = withActorControl({
+                    actor: mockActor,
+                    allowRegularActions: true,
+                });
                 enhancedConfig = middleware(config);
             });
 
@@ -304,7 +307,10 @@ describe("beacon-actorstore", () => {
                     initialState: { items: [] as string[] },
                     actions: { setItems: jest.fn() },
                 };
-                const middleware = withActorControl({ actor: mockActor, allowRegularActions: false });
+                const middleware = withActorControl({
+                    actor: mockActor,
+                    allowRegularActions: false,
+                });
                 enhancedConfig = middleware(config);
                 enhancedConfig.actions.setItems("ignored");
             });
@@ -314,9 +320,7 @@ describe("beacon-actorstore", () => {
             });
 
             it("should replace original actions with warning stubs", () => {
-                expect(console.warn).toHaveBeenCalledWith(
-                    expect.stringContaining("setItems")
-                );
+                expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("setItems"));
             });
         });
     });

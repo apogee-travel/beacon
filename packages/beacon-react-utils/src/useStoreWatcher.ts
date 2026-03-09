@@ -1,7 +1,8 @@
 import type { BeaconActions, BeaconDerived, BeaconState, Store } from "@apogeelabs/beacon";
 import _ from "lodash";
 import { reaction, toJS } from "mobx";
-import { useEffect, useEffectEvent } from "react";
+import { useEffect } from "react";
+import { useEffectEvent } from "./useEffectEventShim";
 
 /**
  * A custom React hook to watch for state changes in a beacon store.
@@ -41,20 +42,30 @@ export function useStoreWatcher<
             (value, previousValue) => {
                 // MobX selectors can return new object references even when the underlying
                 // data hasn't changed. Deep comparison prevents spurious re-renders.
-                if (!previousValue || !_.isEqual(value, previousValue)) {
+                if (previousValue === undefined || !_.isEqual(value, previousValue)) {
                     stableOnChange(value);
                 }
             },
             { fireImmediately }
         );
 
-        // If the store is disposed externally, clean up the reaction too
-        store.registerCleanup(() => {
+        // This wrapper exists solely to produce a stable, distinct function reference.
+        // registerCleanup and unregisterCleanup match by reference equality, so the same
+        // reference must be passed to both. Do NOT "simplify" this to `disposer` directly —
+        // every effect run would register a new reference that can never be unregistered,
+        // resurrecting the stale-accumulation bug this whole feature was built to fix.
+        const storeCleanup = () => {
             disposer();
-        });
+        };
+
+        // If the store is disposed externally, clean up the reaction too
+        store.registerCleanup(storeCleanup);
 
         return () => {
             disposer();
+            // Remove the store-side cleanup entry so stale references don't accumulate
+            // when the component unmounts or the effect re-runs (e.g., store prop changed)
+            store.unregisterCleanup(storeCleanup);
         };
         // stableSelector and stableOnChange are omitted from deps intentionally —
         // useEffectEvent keeps them stable across renders without needing to re-run the effect

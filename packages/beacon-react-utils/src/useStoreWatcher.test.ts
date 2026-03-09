@@ -12,10 +12,16 @@ jest.mock("mobx", () => {
 
 const mockReact = {
     useEffect: jest.fn(),
-    useEffectEvent: jest.fn(fn => fn),
 };
 jest.mock("react", () => {
     return mockReact;
+});
+
+const mockUseEffectEventShim = {
+    useEffectEvent: jest.fn(),
+};
+jest.mock("./useEffectEventShim", () => {
+    return mockUseEffectEventShim;
 });
 
 describe("useStoreWatcher", () => {
@@ -24,11 +30,13 @@ describe("useStoreWatcher", () => {
     beforeEach(async () => {
         jest.clearAllMocks();
         jest.resetModules();
+        mockUseEffectEventShim.useEffectEvent.mockImplementation((fn: any) => fn);
         store = {
             dinner: "calzone",
             dessert: "cannoli",
             beverage: "grapefruit juice",
             registerCleanup: jest.fn(),
+            unregisterCleanup: jest.fn(),
         };
         selector = (store: any) => {
             return {
@@ -49,9 +57,9 @@ describe("useStoreWatcher", () => {
         });
 
         it("should useEffect to manage creating/disposing a mobX reaction", () => {
-            expect(mockReact.useEffectEvent).toHaveBeenCalledTimes(2); // Called for selector and onChange
-            expect(mockReact.useEffectEvent).toHaveBeenCalledWith(selector);
-            expect(mockReact.useEffectEvent).toHaveBeenCalledWith(onChange);
+            expect(mockUseEffectEventShim.useEffectEvent).toHaveBeenCalledTimes(2); // Called for selector and onChange
+            expect(mockUseEffectEventShim.useEffectEvent).toHaveBeenCalledWith(selector);
+            expect(mockUseEffectEventShim.useEffectEvent).toHaveBeenCalledWith(onChange);
             expect(mockReact.useEffect).toHaveBeenCalledTimes(1);
             expect(mockReact.useEffect).toHaveBeenCalledWith(expect.any(Function), [store, false]);
         });
@@ -94,8 +102,32 @@ describe("useStoreWatcher", () => {
                 expect(mobXDisposer).toHaveBeenCalledTimes(2);
             });
 
+            it("should unregister the store cleanup when the effect tears down", () => {
+                // The same function reference registered with registerCleanup should be
+                // passed to unregisterCleanup so stale entries don't accumulate
+                expect(store.unregisterCleanup).toHaveBeenCalledTimes(1);
+                const registered = store.registerCleanup.mock.calls[0][0];
+                const unregistered = store.unregisterCleanup.mock.calls[0][0];
+                expect(unregistered).toBe(registered);
+            });
+
             it("should return a cleanup function from the useEffect that disposes of the reaction", () => {
                 expect(mobXDisposer).toHaveBeenCalledTimes(1);
+            });
+        });
+
+        describe("when the effect runs without tearing down", () => {
+            beforeEach(async () => {
+                mockReact.useEffect.mockImplementationOnce(cb => {
+                    cb(); // run effect but do not invoke the returned cleanup
+                });
+                mockMobX.reaction.mockReturnValueOnce(jest.fn());
+                const mod = await import("./useStoreWatcher");
+                mod.useStoreWatcher(store, selector, onChange);
+            });
+
+            it("should not call unregisterCleanup", () => {
+                expect(store.unregisterCleanup).not.toHaveBeenCalled();
             });
         });
 
@@ -185,6 +217,72 @@ describe("useStoreWatcher", () => {
                     expect(onChange).not.toHaveBeenCalled();
                 });
             });
+
+            describe("when the previous value is a falsy non-undefined value (0) and values are deeply equal", () => {
+                beforeEach(async () => {
+                    mockReact.useEffect.mockImplementationOnce(cb => {
+                        cb();
+                    });
+                    mockMobX.reaction.mockImplementationOnce((_selector: any, effect: any) => {
+                        effect(0, 0);
+                    });
+                    const mod = await import("./useStoreWatcher");
+                    mod.useStoreWatcher(store, selector, onChange);
+                });
+
+                it("should not trigger onChange because values are deeply equal", () => {
+                    expect(onChange).not.toHaveBeenCalled();
+                });
+            });
+        });
+    });
+
+    describe("when the effect runs twice (re-render simulation)", () => {
+        let firstDisposer: jest.Mock, secondDisposer: jest.Mock;
+        let firstStoreCleanup: any, secondStoreCleanup: any;
+
+        beforeEach(async () => {
+            firstDisposer = jest.fn();
+            secondDisposer = jest.fn();
+
+            let effectCallCount = 0;
+            mockReact.useEffect.mockImplementation(cb => {
+                effectCallCount++;
+                if (effectCallCount === 1) {
+                    // First render: run effect, capture cleanup fn, then tear down
+                    const teardown = cb();
+                    firstStoreCleanup = store.registerCleanup.mock.calls[0][0];
+                    teardown();
+                } else {
+                    // Second render: run effect only, no teardown
+                    cb();
+                    secondStoreCleanup = store.registerCleanup.mock.calls[1][0];
+                }
+            });
+            mockMobX.reaction
+                .mockReturnValueOnce(firstDisposer)
+                .mockReturnValueOnce(secondDisposer);
+
+            const mod = await import("./useStoreWatcher");
+            // First render
+            mod.useStoreWatcher(store, selector, onChange);
+            // Second render
+            mod.useStoreWatcher(store, selector, onChange);
+        });
+
+        it("should unregister the first storeCleanup reference, not the second", () => {
+            // unregisterCleanup is called once (during first teardown)
+            expect(store.unregisterCleanup).toHaveBeenCalledTimes(1);
+            expect(store.unregisterCleanup).toHaveBeenCalledWith(firstStoreCleanup);
+        });
+
+        it("should use distinct storeCleanup references for each effect run", () => {
+            // Reference inequality is the whole point — each run produces a new closure
+            expect(firstStoreCleanup).not.toBe(secondStoreCleanup);
+        });
+
+        it("should register a cleanup for each effect run", () => {
+            expect(store.registerCleanup).toHaveBeenCalledTimes(2);
         });
     });
 
